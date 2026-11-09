@@ -15,11 +15,12 @@ function N([object]$value, [int]$digits = 3) {
 $pm = $null; $gm = $null; $p = $null; $g = $null
 $lapWriter = $null; $sampleWriter = $null
 $active = $false; $previousLap = -1; $previousSector = -1
-$s1 = 0; $s2 = 0; $s3 = 0
+$lapStartTime = $null; $boundaryTime = $null
+$estSector1 = $null; $estSector2 = $null
 $previousPacket = -1; $lastProgress = Get-Date
 $waitMessageShown = $false
 
-Write-Host "APEX AI 0.2 | Rejestrator ACC" -ForegroundColor Cyan
+Write-Host "APEX AI 0.2.1 | Rejestrator ACC" -ForegroundColor Cyan
 Write-Host "Zapis danych: $folder"
 Write-Host "Uruchom ACC i wejdz na tor. Zatrzymanie: Ctrl+C."
 Write-Host "Pliki _laps.csv wgrasz do Apex AI; _samples.csv to surowe dane do przyszlej analizy."
@@ -121,35 +122,50 @@ try {
                 $sampleWriter = New-Object System.IO.StreamWriter($samplePath, $false, $encoding)
                 $lapWriter.AutoFlush = $true
                 $sampleWriter.AutoFlush = $true
-                $lapWriter.WriteLine("lap,time,s1,s2,s3,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr")
+                $lapWriter.WriteLine("lap,time,s1,s2,s3,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,sector_source")
                 $sampleWriter.WriteLine("timestamp_utc,completed_laps,sector_index,lap_progress,speed_kmh,gas,brake,gear,rpm,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,pressure_fl,pressure_fr,pressure_rl,pressure_rr")
                 $previousLap = $completed  # Never invent already completed laps.
                 $previousSector = $sector
-                $s1 = 0; $s2 = 0; $s3 = 0
+                $lapStartTime = $null; $boundaryTime = Get-Date
+                $estSector1 = $null; $estSector2 = $null
                 $active = $true
                 Write-Host "Sesja: $lapPath" -ForegroundColor Green
             }
 
-            # Collect sector durations opportunistically. Export only if they
-            # add up to the finished lap time; otherwise show missing data.
-            if ($sector -ne $previousSector -and $lastSectorMs -gt 0) {
-                if ($previousSector -eq 0 -and $sector -eq 1) { $s1 = $lastSectorMs }
-                if ($previousSector -eq 1 -and $sector -eq 2) { $s2 = $lastSectorMs }
-                if ($previousSector -eq 2 -and $sector -eq 0) { $s3 = $lastSectorMs }
+            # ACC lastSectorTime may be unavailable in some sessions.
+            # As a fallback, derive APPROXIMATE S1/S2 from sector boundary
+            # transitions (~5 Hz sampling), not from unverified SDK values.
+            # S3 is residual to the official completed lap time.
+            $now = Get-Date
+            $sectorChanged = ($sector -ne $previousSector)
+            if ($sectorChanged) {
+                if ($previousSector -eq 0 -and $sector -eq 1 -and $lapStartTime) {
+                    $estSector1 = ($now - $lapStartTime).TotalMilliseconds
+                }
+                if ($previousSector -eq 1 -and $sector -eq 2 -and $boundaryTime) {
+                    $estSector2 = ($now - $boundaryTime).TotalMilliseconds
+                }
             }
 
             if ($completed -gt $previousLap) {
                 if ($completed -eq ($previousLap + 1) -and $lastLapMs -gt 10000 -and $lastLapMs -lt 600000) {
                     $sectorValues = @("", "", "")
-                    if ($s1 -gt 0 -and $s2 -gt 0 -and $s3 -gt 0 -and
-                        [Math]::Abs(($s1 + $s2 + $s3) - $lastLapMs) -lt 1500) {
-                        $sectorValues = @((N ($s1 / 1000)), (N ($s2 / 1000)), (N ($s3 / 1000)))
+                    $sectorSource = ""
+                    if ($lapStartTime -and $estSector1 -and $estSector2 -and
+                        [Math]::Abs(($now - $lapStartTime).TotalMilliseconds - $lastLapMs) -lt 1500) {
+                        $s3estimate = $lastLapMs - $estSector1 - $estSector2
+                        if ($estSector1 -gt 0.07 * $lastLapMs -and $estSector1 -lt 0.75 * $lastLapMs -and
+                            $estSector2 -gt 0.07 * $lastLapMs -and $estSector2 -lt 0.75 * $lastLapMs -and
+                            $s3estimate -gt 0.07 * $lastLapMs -and $s3estimate -lt 0.75 * $lastLapMs) {
+                            $sectorValues = @((N ($estSector1 / 1000)), (N ($estSector2 / 1000)), (N ($s3estimate / 1000)))
+                            $sectorSource = "estimated_5hz"
+                        }
                     }
                     $row = @(
                         "$completed", (N ($lastLapMs / 1000)),
                         $sectorValues[0], $sectorValues[1], $sectorValues[2],
                         (N $fuel), (N $tyres[0]), (N $tyres[1]),
-                        (N $tyres[2]), (N $tyres[3])
+                        (N $tyres[2]), (N $tyres[3]), $sectorSource
                     )
                     $lapWriter.WriteLine(($row -join ","))
                     Write-Host ("Okrazenie {0}: {1} s, paliwo {2}" -f $completed, (N ($lastLapMs / 1000)), (N $fuel))
@@ -158,7 +174,15 @@ try {
                     Write-Host "Pominieto niepelne okrazenie lub nieprawidlowy czas." -ForegroundColor Yellow
                 }
                 $previousLap = $completed
-                $s1 = 0; $s2 = 0; $s3 = 0
+            }
+
+            # Mark the start of the next full lap (also after an outlap).
+            if ($sectorChanged) {
+                if ($previousSector -eq 2 -and $sector -eq 0) {
+                    $lapStartTime = $now
+                    $estSector1 = $null; $estSector2 = $null
+                }
+                $boundaryTime = $now
             }
 
             $line = @(
