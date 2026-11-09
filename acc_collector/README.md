@@ -1,4 +1,4 @@
-# Apex AI 0.2 — rejestrator ACC na Windows 11
+# Apex AI 0.2.1 — rejestrator ACC na Windows 11
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -18,8 +18,9 @@ Powstają dwa pliki dla każdej sesji:
 ### Ważne ograniczenia wersji testowej
 
 - Rejestrator działa **lokalnie na Windows**, bez serwera, logowania i usług AI.
+- Zapis CSV z pierwszych prób wersji 0.2 może nie mieć czasów sektorów; aby sprawdzić nową poprawkę, pobierz ZIP z GitHuba jeszcze raz.
 - Nie publikuje danych w internecie. Import pliku do Apex AI odbywa się lokalnie w Twojej przeglądarce.
-- Sektory są wpisywane tylko wtedy, gdy odczytane wartości są spójne z czasem okrążenia; w pozostałych przypadkach pola pozostaną puste.
+- Sektory w wersji 0.2.1 są **przybliżonymi czasami** wyliczonymi z momentów zmiany sektora (około 5 Hz, możliwy błąd około 0,2–0,5 s). W pliku `_laps.csv` oznacza je kolumna `sector_source=estimated_5hz`. Jeśli nie udało się zaobserwować pełnego okrążenia, czasy sektorów pozostają puste. **Nie są to oficjalne czasy sektorów ACC.**
 - Jest to **pierwszy prototyp bez testu na działającej grze**, a nie potwierdzona integracja ACC. Po pierwszym teście możemy skorygować różnice w wersjach Shared Memory.
 - Zarejestrowane temperatury **nie oznaczają zmierzonego zużycia opon**. Nie należy diagnozować degradacji wyłącznie z temperatur.
 - Dane wpisane jako `fuel` traktujemy roboczo jako litry, ale należy porównać wskazanie z grą podczas pierwszego testu.
