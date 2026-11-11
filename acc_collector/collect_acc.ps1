@@ -1,4 +1,4 @@
-# Apex AI 0.2.2 - ACC telemetry collector for Windows 11
+# Apex AI 0.2.3 - ACC telemetry collector for Windows 11
 # Reads ACC shared memory locally. No admin rights, Python, cloud or API key required.
 # The lap CSV is compatible with the existing Apex AI website.
 $ErrorActionPreference = "Stop"
@@ -19,6 +19,35 @@ function Format-LapTimeMs([int]$milliseconds) {
     return ("{0}:{1:00}.{2:000}" -f $minutes, $seconds, $ms)
 }
 
+# ACC StaticInfo (Pack=4, UTF-16): two 15-character strings (60 bytes),
+# two int32 fields (8 bytes), 33-character CarModel (66 bytes), then Track.
+# Track starts at byte 134 and occupies 33 UTF-16 characters (66 bytes).
+function Get-ACCTrack {
+    $staticMap = $null
+    $staticView = $null
+    try {
+        $staticMap = [System.IO.MemoryMappedFiles.MemoryMappedFile]::OpenExisting("Local\acpmf_static")
+        $staticView = $staticMap.CreateViewAccessor(0, 0, [System.IO.MemoryMappedFiles.MemoryMappedFileAccess]::Read)
+        $bytes = New-Object byte[] 66
+        for ($i = 0; $i -lt $bytes.Length; $i++) {
+            $bytes[$i] = $staticView.ReadByte(134 + $i)
+        }
+        $track = [System.Text.Encoding]::Unicode.GetString($bytes).Split([char]0)[0].Trim()
+        # Prevent malformed data from breaking the simple CSV parser.
+        if ($track.Length -ge 2 -and $track.Length -le 32 -and $track -notmatch '[,;"\r\n]') {
+            return $track
+        }
+    }
+    catch {
+        # Static memory may not be ready yet. Do not interrupt lap recording.
+    }
+    finally {
+        if ($staticView) { $staticView.Dispose() }
+        if ($staticMap) { $staticMap.Dispose() }
+    }
+    return ""
+}
+
 $pm = $null; $gm = $null; $p = $null; $g = $null
 $lapWriter = $null; $sampleWriter = $null
 $active = $false; $previousLap = -1; $previousSector = -1
@@ -27,7 +56,7 @@ $estSector1 = $null; $estSector2 = $null
 $previousPacket = -1; $lastProgress = Get-Date
 $waitMessageShown = $false
 
-Write-Host "APEX AI 0.2.2 | Rejestrator ACC" -ForegroundColor Cyan
+Write-Host "APEX AI 0.2.3 | Rejestrator ACC" -ForegroundColor Cyan
 Write-Host "Zapis danych: $folder"
 Write-Host "Uruchom ACC i wejdz na tor. Zatrzymanie: Ctrl+C."
 Write-Host "Pliki _laps.csv wgrasz do Apex AI; _samples.csv to surowe dane do przyszlej analizy."
@@ -121,6 +150,13 @@ try {
             }
 
             if (-not $active) {
+                $trackName = Get-ACCTrack
+                if ($trackName) {
+                    Write-Host ("Wykryty tor: " + $trackName) -ForegroundColor Cyan
+                }
+                else {
+                    Write-Host "Tor: nieznany (brak odczytu z pamieci ACC)." -ForegroundColor Yellow
+                }
                 $stamp = (Get-Date).ToString("yyyyMMdd_HHmmss")
                 $base = Join-Path $folder ("acc_" + $stamp + "_" + (Get-Random -Minimum 1000 -Maximum 9999))
                 $lapPath = $base + "_laps.csv"
@@ -129,7 +165,7 @@ try {
                 $sampleWriter = New-Object System.IO.StreamWriter($samplePath, $false, $encoding)
                 $lapWriter.AutoFlush = $true
                 $sampleWriter.AutoFlush = $true
-                $lapWriter.WriteLine("lap,time,s1,s2,s3,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,sector_source")
+                $lapWriter.WriteLine("lap,time,s1,s2,s3,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,sector_source,track")
                 $sampleWriter.WriteLine("timestamp_utc,completed_laps,sector_index,lap_progress,speed_kmh,gas,brake,gear,rpm,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,pressure_fl,pressure_fr,pressure_rl,pressure_rr")
                 $previousLap = $completed  # Never invent already completed laps.
                 $previousSector = $sector
@@ -172,7 +208,7 @@ try {
                         "$completed", (N ($lastLapMs / 1000)),
                         $sectorValues[0], $sectorValues[1], $sectorValues[2],
                         (N $fuel), (N $tyres[0]), (N $tyres[1]),
-                        (N $tyres[2]), (N $tyres[3]), $sectorSource
+                        (N $tyres[2]), (N $tyres[3]), $sectorSource, $trackName
                     )
                     $lapWriter.WriteLine(($row -join ","))
                     Write-Host ("Okrazenie {0}: {1}, paliwo {2}" -f $completed, (Format-LapTimeMs $lastLapMs), (N $fuel))
