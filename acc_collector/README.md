@@ -1,4 +1,4 @@
-# Apex AI 0.2.8 — rejestrator ACC na Windows 11
+# Apex AI 0.2.9 — rejestrator ACC na Windows 11
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -12,9 +12,21 @@
 
 **Folder wyników:** `Dokumenty\ApexAI\sessions` (rzeczywisty systemowy katalog Dokumenty, także gdy przekierowany do OneDrive).
 
-Powstają dwa pliki dla każdej sesji:
+Powstają dwa pliki dla każdej sesji (gdy rejestrator uruchomiono tylko raz):
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.9
+
+- **Blokada podwójnego uruchomienia:** rejestrator używa systemowego muteksu Windows `Local\\ApexAI_ACCCollector`. Jeśli pierwsza kopia nadal działa, druga wyświetla ostrzeżenie i kończy pracę **bez tworzenia plików CSV**. Działa także po uruchomieniu kopii z różnych folderów.
+- **Wykres prędkości:** po imporcie `*_samples.csv` dashboard pokazuje prędkość (km/h) w funkcji postępu okrążenia (0–100%). Można wybierać ukończone okrążenia; domyślnie pokazuje najlepsze z `*_laps.csv` (jeśli jest dostępne).
+- Pierwsze okrążenie może zawierać wyjazd z boksu; wykres wybiera końcowy pełny przebieg postępu 0–100%, nie miesza go z outlapem. Nieukończonych okrążeń nie pokazuje.
+- Dla płynnego działania wykres wyświetla ograniczoną liczbę punktów, ale **nie zmienia oryginalnego CSV ani próbek w pamięci**.
+- Próbkowanie ACC, szacowanie sektorów i formaty CSV pozostają bez zmian.
+
+**Test 0.2.9 (bez jazdy):** otwórz dashboard i zaimportuj oba pliki z testu Lamborghini na Imoli: `acc_20261111_154845_3342_laps.csv` i `acc_20261111_154845_3342_samples.csv`. Powinny pojawić się okrążenia 1, 2, 3 i wykres prędkości; domyślnie okrążenie 3 (1:46.112). Przełącz na 1 i 2, sprawdź, czy wykres się zmienia.
+
+**Test 0.2.9 (blokada):** uruchom `Start-ApexACC.cmd` dwukrotnie bez zamykania pierwszego okna. Druga kopia powinna zgłosić, że rejestrator już działa, i **nie tworzyć nowej pary plików**. Jeśli Windows pyta o zamknięcie okna, pozostaw pierwszą kopię uruchomioną i zamknij tylko drugą.
 
 ### Co zmieniono w 0.2.8
 
