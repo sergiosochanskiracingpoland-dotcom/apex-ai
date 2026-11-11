@@ -1,4 +1,4 @@
-# Apex AI 0.2.3 — rejestrator ACC na Windows 11
+# Apex AI 0.2.4 — rejestrator ACC na Windows 11
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -14,6 +14,17 @@
 Powstają dwa pliki dla każdej sesji:
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki około 5 Hz, m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.4
+
+- Nazwa toru i model samochodu są **odczytywane z ACC StaticInfo** (tor: offset 134, samochód: offset 68), a nie przypisywane na stałe.
+- Identyfikator `Imola` jest wyświetlany jako `Imola Autodromo Enzo e Dino Ferrari`, a `porsche_992_gt3_r` jako `Porsche 992 GT3 R`. To mapowanie nazw do wyświetlania, nie dodatkowe pole udostępniane przez ACC.
+- Nieznane identyfikatory wyświetlane są bez zmian, bez zgadywania pełnych nazw.
+- Konsola pokazuje **nazwę oraz oryginalny identyfikator ACC**; nowy plik `*_laps.csv` zawiera `track` (surowe ID), `track_name`, `car_model` (surowe ID) i `car_name`.
+- Dashboard pokazuje nazwę toru i samochodu po imporcie nowego CSV. Starsze pliki bez nowych kolumn nadal działają.
+- Program sprawdza identyfikatory co około sekundę i rozpoczyna nowy plik sesji, jeśli wykryje zmianę toru lub samochodu. Po wyjściu z aktywnej sesji nie przenosi starego identyfikatora do kolejnej sesji.
+
+**Test 0.2.4:** uruchom Imolę w Porsche 992 GT3 R, przejedź pełne okrążenie i sprawdź obie nazwy. Następnie zmień tor na inny (np. Monza) i uruchom kolejną sesję; musi pokazać nazwę nowego toru, nigdy Imolę. Sprawdź oba pliki `*_laps.csv` w dashboardzie. Jeśli ACC zwróci nieznane ID, zobaczysz je w oryginalnej postaci.
 
 ### Co zmieniono w 0.2.3
 
