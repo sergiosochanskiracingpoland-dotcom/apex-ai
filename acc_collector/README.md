@@ -1,4 +1,4 @@
-# Apex AI 0.2.4 — rejestrator ACC na Windows 11
+# Apex AI 0.2.5 — rejestrator ACC na Windows 11
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -13,7 +13,17 @@
 
 Powstają dwa pliki dla każdej sesji:
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
-- `*_samples.csv`: próbki około 5 Hz, m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+- `*_samples.csv`: próbki z docelową częstotliwością 20 Hz (50 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.5
+
+- Zwiększono **docelową częstotliwość zapisu próbek z około 5 Hz do 20 Hz** (interwał 50 ms).
+- Interwał uwzględnia czas wykonania odczytu i zapisu (zegar monotoniczny `Stopwatch`), zamiast dodawać 50 ms opóźnienia do każdej iteracji.
+- Nie zmieniono źródła danych ACC, odczytywanych pól, formatu czasu okrążeń ani wykrywania toru/samochodu.
+- Szacunkowe sektory z nowych sesji otrzymują etykietę `estimated_20hz`; **nadal nie są oficjalnymi sektorami ACC**.
+- 20 Hz to **cel próbkowania, nie potwierdzona częstotliwość świeżych danych z gry**. Faktyczną częstotliwość, ewentualne powtórzenia odczytów i stabilność trzeba ocenić na rzeczywistych plikach `*_samples.csv`.
+
+**Test 0.2.5:** pobierz najnowszą wersję, przejedź na Imoli Porsche 992 GT3 R 2–3 pełne okrążenia i prześlij **oba** pliki CSV oraz zrzut konsoli. Zmierzymy rzeczywistą liczbę próbek na sekundę, odstępy między próbkami, zgodność okrążeń i zachowanie programu.
 
 ### Co zmieniono w 0.2.4
 
@@ -47,7 +57,7 @@ Powstają dwa pliki dla każdej sesji:
 - Rejestrator działa **lokalnie na Windows**, bez serwera, logowania i usług AI.
 - Zapis CSV z pierwszych prób wersji 0.2 może nie mieć czasów sektorów; aby sprawdzić nową poprawkę, pobierz ZIP z GitHuba jeszcze raz.
 - Nie publikuje danych w internecie. Import pliku do Apex AI odbywa się lokalnie w Twojej przeglądarce.
-- Sektory od wersji 0.2.1 są **przybliżonymi czasami** wyliczonymi z momentów zmiany sektora (około 5 Hz, możliwy błąd około 0,2–0,5 s). W pliku `_laps.csv` oznacza je kolumna `sector_source=estimated_5hz`. Jeśli nie udało się zaobserwować pełnego okrążenia, czasy sektorów pozostają puste. **Nie są to oficjalne czasy sektorów ACC.**
+- Sektory od wersji 0.2.1 są **przybliżonymi czasami** wyliczonymi z momentów zmiany sektora. W starszych sesjach oznaczono je `sector_source=estimated_5hz`, a od 0.2.5 — `estimated_20hz`. Jeśli nie udało się zaobserwować pełnego okrążenia, czasy sektorów pozostają puste. **Nie są to oficjalne czasy sektorów ACC.**
 - Integracja była testowana w ACC, ale wymaga dalszych testów stabilności i zgodności na różnych konfiguracjach.
 - Zarejestrowane temperatury **nie oznaczają zmierzonego zużycia opon**. Nie należy diagnozować degradacji wyłącznie z temperatur.
 - Dane wpisane jako `fuel` traktujemy roboczo jako litry, ale należy porównać wskazanie z grą podczas pierwszego testu.
