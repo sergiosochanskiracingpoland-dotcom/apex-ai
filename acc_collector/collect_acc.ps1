@@ -1,7 +1,24 @@
-# Apex AI 0.2.7 - ACC telemetry collector for Windows 11
+# Apex AI 0.2.9 - ACC telemetry collector for Windows 11
 # Reads ACC shared memory locally. No admin rights, Python, cloud or API key required.
 # The lap CSV is compatible with the existing Apex AI website.
 $ErrorActionPreference = "Stop"
+# Allow only one collector in this Windows user session, even when
+# the program is launched from multiple extracted ZIP folders.
+$collectorMutex = [System.Threading.Mutex]::new($false, 'Local\ApexAI_ACCCollector')
+$ownsCollectorMutex = $false
+try {
+    $ownsCollectorMutex = $collectorMutex.WaitOne(0)
+}
+catch [System.Threading.AbandonedMutexException] {
+    # The previous process was terminated without releasing its mutex.
+    $ownsCollectorMutex = $true
+}
+if (-not $ownsCollectorMutex) {
+    Write-Host "Apex AI: rejestrator ACC jest juz uruchomiony. Zamknij poprzednie okno przed uruchomieniem nowego." -ForegroundColor Yellow
+    $collectorMutex.Dispose()
+    exit 0
+}
+
 $culture = [System.Globalization.CultureInfo]::InvariantCulture
 $folder = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "ApexAI\sessions"
 [void](New-Item -ItemType Directory -Force -Path $folder)
@@ -103,7 +120,7 @@ $latestTrackId = ""; $latestCarId = ""
 $trackId = ""; $carId = ""
 $nextInfoCheck = Get-Date
 
-Write-Host "APEX AI 0.2.7 | Rejestrator ACC" -ForegroundColor Cyan
+Write-Host "APEX AI 0.2.9 | Rejestrator ACC" -ForegroundColor Cyan
 Write-Host "Zapis danych: $folder"
 Write-Host "Uruchom ACC i wejdz na tor. Zatrzymanie: Ctrl+C."
 Write-Host "Pliki _laps.csv wgrasz do Apex AI; _samples.csv to surowe dane do przyszlej analizy."
@@ -375,4 +392,6 @@ finally {
     if ($gm) { $gm.Dispose() }
     if ($pm) { $pm.Dispose() }
     if ($highResolutionTimerActive) { [void][ApexTimerResolution]::timeEndPeriod(1) }
+    if ($ownsCollectorMutex) { $collectorMutex.ReleaseMutex() }
+    if ($collectorMutex) { $collectorMutex.Dispose() }
 }
