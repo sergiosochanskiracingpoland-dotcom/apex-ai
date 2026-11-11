@@ -1,4 +1,4 @@
-# Apex AI 0.2.9 — rejestrator ACC na Windows 11
+# Apex AI 0.2.10 — dashboard ACC (rejestrator bez zmian od 0.2.9)
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -15,6 +15,15 @@
 Powstają dwa pliki dla każdej sesji (gdy rejestrator uruchomiono tylko raz):
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.10
+
+- **Wykres gazu i hamulca:** po zaimportowaniu `*_samples.csv` dashboard pokazuje dwa przebiegi pedałów na wspólnym wykresie: gaz (turkusowy) i hamulec (pomarańczowy), oba w skali 0–100%.
+- **Wybór okrążenia:** wykres pedałów i wcześniejszy wykres prędkości mają zsynchronizowane listy okrążeń. Zmiana okrążenia w dowolnym miejscu aktualizuje oba wykresy.
+- Oś pozioma przedstawia postęp okrążenia od 0 do 100%. Dane pochodzą bezpośrednio z ACC, bez wygładzania; podczas ograniczania liczby punktów zachowywane są wartości minimalne i maksymalne krótkich fragmentów.
+- **Nie zmieniono rejestratora** (nadal wersja 0.2.9), jego próbkowania, sposobu wykrywania torów i samochodów, sektorów ani formatu plików CSV.
+
+**Test 0.2.10 (bez nowej jazdy):** odśwież dashboard `Ctrl+F5`. Zaimportuj pliki `acc_20261111_182843_7449_laps.csv` oraz `acc_20261111_182843_7449_samples.csv` z ostatniego testu Ferrari na Imoli. Sprawdź, czy widać dwie linie (gaz i hamulec) oraz czy zmiana okrążenia 1 ↔ 2 na jednym z wykresów aktualizuje również drugi. Wykresy mają przedstawiać pełne okrążenie, nie okrążenie wyjazdowe.
 
 ### Co zmieniono w 0.2.9
 
@@ -103,7 +112,7 @@ Powstają dwa pliki dla każdej sesji (gdy rejestrator uruchomiono tylko raz):
 - Integracja była testowana w ACC, ale wymaga dalszych testów stabilności i zgodności na różnych konfiguracjach.
 - Zarejestrowane temperatury **nie oznaczają zmierzonego zużycia opon**. Nie należy diagnozować degradacji wyłącznie z temperatur.
 - Dane wpisane jako `fuel` traktujemy roboczo jako litry, ale należy porównać wskazanie z grą podczas pierwszego testu.
-- Pliki `*_samples.csv` można importować do dashboardu, ale szczegółowe wykresy i analiza surowej telemetrii nie są jeszcze dostępne. Dane pozostają lokalnie w przeglądarce.
+- Pliki `*_samples.csv` można importować do dashboardu. Dostępne są wykresy prędkości, gazu i hamulca, ale zaawansowana analiza i porównywanie dwóch okrążeń nie są jeszcze dostępne. Dane pozostają lokalnie w przeglądarce.
 - Uruchamiaj wyłącznie kod, którego źródło znasz; plik CMD uruchamia dołączony skrypt PowerShell w procesie z polityką `Bypass`, bez trwałej zmiany ustawień systemu.
 
 ### Źródła formatu Shared Memory
