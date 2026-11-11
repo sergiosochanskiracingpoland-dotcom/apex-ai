@@ -1,4 +1,4 @@
-# Apex AI 0.2.5 - ACC telemetry collector for Windows 11
+# Apex AI 0.2.6 - ACC telemetry collector for Windows 11
 # Reads ACC shared memory locally. No admin rights, Python, cloud or API key required.
 # The lap CSV is compatible with the existing Apex AI website.
 $ErrorActionPreference = "Stop"
@@ -6,8 +6,8 @@ $culture = [System.Globalization.CultureInfo]::InvariantCulture
 $folder = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "ApexAI\sessions"
 [void](New-Item -ItemType Directory -Force -Path $folder)
 $encoding = New-Object System.Text.UTF8Encoding($false)
-# Target 20 samples/second; real rate depends on Windows scheduling and ACC.
-$sampleIntervalMs = 50
+# Experimental target: 50 samples/second; actual rate depends on Windows scheduling and ACC.
+$sampleIntervalMs = 20
 
 function N([object]$value, [int]$digits = 3) {
     if ($null -eq $value) { return "" }
@@ -83,11 +83,11 @@ $latestTrackId = ""; $latestCarId = ""
 $trackId = ""; $carId = ""
 $nextInfoCheck = Get-Date
 
-Write-Host "APEX AI 0.2.5 | Rejestrator ACC" -ForegroundColor Cyan
+Write-Host "APEX AI 0.2.6 | Rejestrator ACC" -ForegroundColor Cyan
 Write-Host "Zapis danych: $folder"
 Write-Host "Uruchom ACC i wejdz na tor. Zatrzymanie: Ctrl+C."
 Write-Host "Pliki _laps.csv wgrasz do Apex AI; _samples.csv to surowe dane do przyszlej analizy."
-Write-Host "Docelowe probkowanie: 20 Hz (co 50 ms). Rzeczywista czestotliwosc wymaga testu."
+Write-Host "Eksperymentalne probkowanie: 50 Hz (co 20 ms). Rzeczywista czestotliwosc wymaga testu."
 Write-Host ""
 
 try {
@@ -243,7 +243,7 @@ try {
 
             # ACC lastSectorTime may be unavailable in some sessions.
             # As a fallback, derive APPROXIMATE S1/S2 from sector boundary
-            # transitions (~20 Hz target sampling), not from unverified SDK values.
+            # transitions (50 Hz target sampling), not from unverified SDK values.
             # S3 is residual to the official completed lap time.
             $now = Get-Date
             $sectorChanged = ($sector -ne $previousSector)
@@ -267,7 +267,7 @@ try {
                             $estSector2 -gt 0.07 * $lastLapMs -and $estSector2 -lt 0.75 * $lastLapMs -and
                             $s3estimate -gt 0.07 * $lastLapMs -and $s3estimate -lt 0.75 * $lastLapMs) {
                             $sectorValues = @((N ($estSector1 / 1000)), (N ($estSector2 / 1000)), (N ($s3estimate / 1000)))
-                            $sectorSource = "estimated_20hz"
+                            $sectorSource = "estimated_50hz"
                         }
                     }
                     $row = @(
@@ -304,8 +304,8 @@ try {
             )
             $sampleWriter.WriteLine(($line -join ","))
             $previousSector = $sector
-            # Keep the entire read/process/write cycle near 50 ms, rather
-            # than sleeping 50 ms on top of processing time.
+            # Keep the entire read/process/write cycle near 20 ms, rather
+            # than sleeping 20 ms on top of processing time.
             $elapsedMs = 1000.0 * ([System.Diagnostics.Stopwatch]::GetTimestamp() - $sampleStarted) / [System.Diagnostics.Stopwatch]::Frequency
             $remainingMs = [int][Math]::Floor($sampleIntervalMs - $elapsedMs)
             if ($remainingMs -gt 0) { Start-Sleep -Milliseconds $remainingMs }
