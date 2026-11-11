@@ -1,4 +1,4 @@
-# Apex AI 0.2.6 — rejestrator ACC na Windows 11
+# Apex AI 0.2.7 — rejestrator ACC na Windows 11
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -14,6 +14,15 @@
 Powstają dwa pliki dla każdej sesji:
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.7
+
+- **Naprawa sektorów:** zachowujemy szacunkowe czasy S1/S2 z ukończonego okrążenia, nawet gdy ACC przełącza sektor z 2 na 0 przed zwiększeniem licznika okrążeń. W teście 0.2.6 taka różnica wynosiła około 31–67 ms, przez co czasy sektorów znikały.
+- **Dokładniejszy zegar:** na Windows rejestrator próbuje włączyć rozdzielczość timera 1 ms przez `winmm.dll` (`timeBeginPeriod(1)`). Wyłącza ją przy zamknięciu. Jeśli system nie pozwoli, działa dalej na standardowym zegarze.
+- Używa `Thread.Sleep` zamiast `Start-Sleep` do odmierzania pozostałego czasu cyklu. Cel nadal wynosi **50 Hz (20 ms)**; wynik musi potwierdzić test w ACC.
+- Zachowano format CSV, odczytywane kanały, wykrywanie torów/samochodów i etykietę `estimated_50hz`. **Czasy sektorów są nadal szacunkowe, a nie oficjalne z ACC.**
+
+**Test 0.2.7:** przejedź na Imoli 2–3 pełne okrążenia, najlepiej Ferrari 296 GT3 dla porównania z 0.2.6. Sprawdź, czy w konsoli widnieje `Timer Windows: tryb 1 ms aktywny`, a następnie prześlij zrzut konsoli i oba pliki CSV. Zbadamy rzeczywistą częstotliwość, stabilność oraz obecność wszystkich sektorów w `*_laps.csv`. Zaimportuj plik `*_laps.csv` do dashboardu i sprawdź wykres sektorów.
 
 ### Co zmieniono w 0.2.6
 
