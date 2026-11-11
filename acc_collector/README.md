@@ -1,4 +1,4 @@
-# Apex AI 0.2.5 — rejestrator ACC na Windows 11
+# Apex AI 0.2.6 — rejestrator ACC na Windows 11
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -13,7 +13,16 @@
 
 Powstają dwa pliki dla każdej sesji:
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
-- `*_samples.csv`: próbki z docelową częstotliwością 20 Hz (50 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+- `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.6
+
+- **Eksperymentalne 50 Hz:** skrócono docelowy odstęp między zapisami z 50 ms do 20 ms.
+- Nie zmieniono sposobu odczytu Shared Memory, rozpoznawania toru i samochodu, struktury plików CSV ani mechanizmu szacowania sektorów.
+- Nowe szacunkowe sektory mają oznaczenie `estimated_50hz`, które informuje o **docelowej** częstotliwości próbkowania, a nie gwarantuje osiągnięcia 50 Hz.
+- Częstotliwość rzeczywistą i powtórzenia danych trzeba zweryfikować na pliku `*_samples.csv`; sama liczba wierszy nie dowodzi, że ACC dostarczyło tyle samo nowych pakietów.
+
+**Test 0.2.6:** pobierz najnowszy ZIP, uruchom ACC i rejestrator, przejedź 2–3 pełne okrążenia. Prześlij zrzut konsoli oraz oba pliki `*_laps.csv` i `*_samples.csv`. Porównamy średnią częstotliwość, odstępy między próbkami, przerwy i liczbę powtarzających się wartości z wersją 0.2.5. Nie przechodzimy do dalszej optymalizacji bez wyników tego testu.
 
 ### Co zmieniono w 0.2.5
 
@@ -57,7 +66,7 @@ Powstają dwa pliki dla każdej sesji:
 - Rejestrator działa **lokalnie na Windows**, bez serwera, logowania i usług AI.
 - Zapis CSV z pierwszych prób wersji 0.2 może nie mieć czasów sektorów; aby sprawdzić nową poprawkę, pobierz ZIP z GitHuba jeszcze raz.
 - Nie publikuje danych w internecie. Import pliku do Apex AI odbywa się lokalnie w Twojej przeglądarce.
-- Sektory od wersji 0.2.1 są **przybliżonymi czasami** wyliczonymi z momentów zmiany sektora. W starszych sesjach oznaczono je `sector_source=estimated_5hz`, a od 0.2.5 — `estimated_20hz`. Jeśli nie udało się zaobserwować pełnego okrążenia, czasy sektorów pozostają puste. **Nie są to oficjalne czasy sektorów ACC.**
+- Sektory od wersji 0.2.1 są **przybliżonymi czasami** wyliczonymi z momentów zmiany sektora. W starszych sesjach oznaczono je `estimated_5hz` lub `estimated_20hz`, a od 0.2.6 — `estimated_50hz` (częstotliwość docelowa). Jeśli nie udało się zaobserwować pełnego okrążenia, czasy sektorów pozostają puste. **Nie są to oficjalne czasy sektorów ACC.**
 - Integracja była testowana w ACC, ale wymaga dalszych testów stabilności i zgodności na różnych konfiguracjach.
 - Zarejestrowane temperatury **nie oznaczają zmierzonego zużycia opon**. Nie należy diagnozować degradacji wyłącznie z temperatur.
 - Dane wpisane jako `fuel` traktujemy roboczo jako litry, ale należy porównać wskazanie z grą podczas pierwszego testu.
