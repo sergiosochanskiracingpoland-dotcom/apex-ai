@@ -1,4 +1,4 @@
-# Apex AI 0.2 - ACC telemetry collector for Windows 11
+# Apex AI 0.2.2 - ACC telemetry collector for Windows 11
 # Reads ACC shared memory locally. No admin rights, Python, cloud or API key required.
 # The lap CSV is compatible with the existing Apex AI website.
 $ErrorActionPreference = "Stop"
@@ -12,6 +12,13 @@ function N([object]$value, [int]$digits = 3) {
     return ([double]$value).ToString("F$digits", $culture)
 }
 
+function Format-LapTimeMs([int]$milliseconds) {
+    $minutes = [int][Math]::Floor($milliseconds / 60000)
+    $seconds = [int][Math]::Floor(($milliseconds % 60000) / 1000)
+    $ms = $milliseconds % 1000
+    return ("{0}:{1:00}.{2:000}" -f $minutes, $seconds, $ms)
+}
+
 $pm = $null; $gm = $null; $p = $null; $g = $null
 $lapWriter = $null; $sampleWriter = $null
 $active = $false; $previousLap = -1; $previousSector = -1
@@ -20,7 +27,7 @@ $estSector1 = $null; $estSector2 = $null
 $previousPacket = -1; $lastProgress = Get-Date
 $waitMessageShown = $false
 
-Write-Host "APEX AI 0.2.1 | Rejestrator ACC" -ForegroundColor Cyan
+Write-Host "APEX AI 0.2.2 | Rejestrator ACC" -ForegroundColor Cyan
 Write-Host "Zapis danych: $folder"
 Write-Host "Uruchom ACC i wejdz na tor. Zatrzymanie: Ctrl+C."
 Write-Host "Pliki _laps.csv wgrasz do Apex AI; _samples.csv to surowe dane do przyszlej analizy."
@@ -168,7 +175,7 @@ try {
                         (N $tyres[2]), (N $tyres[3]), $sectorSource
                     )
                     $lapWriter.WriteLine(($row -join ","))
-                    Write-Host ("Okrazenie {0}: {1} s, paliwo {2}" -f $completed, (N ($lastLapMs / 1000)), (N $fuel))
+                    Write-Host ("Okrazenie {0}: {1}, paliwo {2}" -f $completed, (Format-LapTimeMs $lastLapMs), (N $fuel))
                 }
                 else {
                     Write-Host "Pominieto niepelne okrazenie lub nieprawidlowy czas." -ForegroundColor Yellow
