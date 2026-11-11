@@ -1,4 +1,4 @@
-# Apex AI 0.2.2 — rejestrator ACC na Windows 11
+# Apex AI 0.2.3 — rejestrator ACC na Windows 11
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -14,6 +14,16 @@
 Powstają dwa pliki dla każdej sesji:
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki około 5 Hz, m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.3
+
+- Rejestrator odczytuje nazwę toru z `Local\acpmf_static` (pole `Track` w ACC StaticInfo).
+- Po rozpoczęciu sesji pokazuje np. `Wykryty tor: imola`.
+- W pliku `*_laps.csv` dopisuje na końcu kolumnę `track`; format czasów i pozostałe kolumny nie zmieniają się.
+- Dashboard wyświetla nazwę toru przy informacji o wczytanej sesji. Starsze CSV bez kolumny `track` nadal działają.
+- Gdy ACC nie udostępnia nazwy toru, pole pozostaje puste. Rejestracja okrążeń trwa dalej, bez zgadywania toru.
+
+**Test:** rozpocznij sesję na Imoli, sprawdź komunikat `Wykryty tor`, przejedź 2–3 okrążenia i zaimportuj nowy plik `*_laps.csv` do dashboardu. Nie trzeba zmieniać samochodu ani ustawień zużycia.
 
 ### Co zmieniono w 0.2.2
 
