@@ -40,8 +40,8 @@ function Get-ACCSessionInfo {
         $staticMap = [System.IO.MemoryMappedFiles.MemoryMappedFile]::OpenExisting("Local\acpmf_static")
         $staticView = $staticMap.CreateViewAccessor(0, 0, [System.IO.MemoryMappedFiles.MemoryMappedFileAccess]::Read)
         return @{
-            Track = Read-ACCStaticString $staticView 134
-            CarModel = Read-ACCStaticString $staticView 68
+            Track = (Read-ACCStaticString $staticView 134)
+            CarModel = (Read-ACCStaticString $staticView 68)
         }
     }
     catch {
@@ -176,6 +176,9 @@ try {
                 $lapWriter.Dispose(); $lapWriter = $null
                 $sampleWriter.Dispose(); $sampleWriter = $null
                 $active = $false
+                # Never reuse the previous session's track/car after a lap reset.
+                $latestTrackId = ""; $latestCarId = ""
+                $nextInfoCheck = Get-Date
             }
 
             # Poll ACC's own StaticInfo once a second. A track/car change
