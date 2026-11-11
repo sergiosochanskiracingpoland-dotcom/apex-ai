@@ -12,7 +12,7 @@ $sampleIntervalMs = 20
 # Request a 1 ms multimedia timer for this process; release it on exit.
 $highResolutionTimerActive = $false
 try {
-    Add-Type -TypeDefinition @'
+    Add-Type -ErrorAction Stop -TypeDefinition @'
 using System.Runtime.InteropServices;
 public static class ApexTimerResolution {
     [DllImport("winmm.dll", ExactSpelling = true)]
@@ -20,7 +20,7 @@ public static class ApexTimerResolution {
     [DllImport("winmm.dll", ExactSpelling = true)]
     public static extern uint timeEndPeriod(uint period);
 }
-'@ -ErrorAction Stop
+'@
     $highResolutionTimerActive = ([ApexTimerResolution]::timeBeginPeriod(1) -eq 0)
 }
 catch {
