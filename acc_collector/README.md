@@ -1,4 +1,4 @@
-# Apex AI 0.2.1 — rejestrator ACC na Windows 11
+# Apex AI 0.2.2 — rejestrator ACC na Windows 11
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -15,13 +15,19 @@ Powstają dwa pliki dla każdej sesji:
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki około 5 Hz, m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
 
+### Co zmieniono w 0.2.2
+
+- Czas ukończonego okrążenia w oknie rejestratora jest wyświetlany jako `M:SS.mmm`, np. `1:27.010` zamiast `87.010 s`.
+- Dashboard stosuje ten sam format i poprawnie obsługuje zaokrąglenie przy granicy minuty.
+- **CSV pozostaje bez zmian:** `time` jest liczbą sekund (np. `87.010`), aby zachować zgodność z analizą i wcześniejszymi plikami.
+
 ### Ważne ograniczenia wersji testowej
 
 - Rejestrator działa **lokalnie na Windows**, bez serwera, logowania i usług AI.
 - Zapis CSV z pierwszych prób wersji 0.2 może nie mieć czasów sektorów; aby sprawdzić nową poprawkę, pobierz ZIP z GitHuba jeszcze raz.
 - Nie publikuje danych w internecie. Import pliku do Apex AI odbywa się lokalnie w Twojej przeglądarce.
-- Sektory w wersji 0.2.1 są **przybliżonymi czasami** wyliczonymi z momentów zmiany sektora (około 5 Hz, możliwy błąd około 0,2–0,5 s). W pliku `_laps.csv` oznacza je kolumna `sector_source=estimated_5hz`. Jeśli nie udało się zaobserwować pełnego okrążenia, czasy sektorów pozostają puste. **Nie są to oficjalne czasy sektorów ACC.**
-- Jest to **pierwszy prototyp bez testu na działającej grze**, a nie potwierdzona integracja ACC. Po pierwszym teście możemy skorygować różnice w wersjach Shared Memory.
+- Sektory od wersji 0.2.1 są **przybliżonymi czasami** wyliczonymi z momentów zmiany sektora (około 5 Hz, możliwy błąd około 0,2–0,5 s). W pliku `_laps.csv` oznacza je kolumna `sector_source=estimated_5hz`. Jeśli nie udało się zaobserwować pełnego okrążenia, czasy sektorów pozostają puste. **Nie są to oficjalne czasy sektorów ACC.**
+- Integracja była testowana w ACC, ale wymaga dalszych testów stabilności i zgodności na różnych konfiguracjach.
 - Zarejestrowane temperatury **nie oznaczają zmierzonego zużycia opon**. Nie należy diagnozować degradacji wyłącznie z temperatur.
 - Dane wpisane jako `fuel` traktujemy roboczo jako litry, ale należy porównać wskazanie z grą podczas pierwszego testu.
 - Jeśli strona Apex AI jest otwarta z Internetu przez GitHub Pages, pliki `*_samples.csv` nie są jeszcze analizowane w dashboardzie.
