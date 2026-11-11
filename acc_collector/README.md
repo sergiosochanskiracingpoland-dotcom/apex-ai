@@ -1,4 +1,4 @@
-# Apex AI 0.2.10 — dashboard ACC (rejestrator bez zmian od 0.2.9)
+# Apex AI 0.2.10.5 — dashboard i rejestrator ACC
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -15,6 +15,15 @@
 Powstają dwa pliki dla każdej sesji (gdy rejestrator uruchomiono tylko raz):
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.10.5
+
+- Ujednolicono numer wersji w **dashboardzie**, nagłówku okna Windows i komunikacie startowym rejestratora: wszędzie widnieje **Apex AI 0.2.10.5**.
+- Funkcje z 0.2.10 (wykresy gazu i hamulca oraz zsynchronizowany wybór okrążenia) pozostają dostępne.
+- **Nie zmieniono logiki rejestratora** względem 0.2.9: nadal odczytuje ACC, zapisuje te same dwa pliki CSV, próbuje próbkować z częstotliwością 50 Hz i blokuje podwójne uruchomienie.
+- Aby zobaczyć nowy numer w **oknie rejestratora**, pobierz ponownie repozytorium przez `Code → Download ZIP`, rozpakuj i uruchom nowy `Start-ApexACC.cmd`. Samo odświeżenie strony nie aktualizuje plików PowerShell na komputerze.
+
+**Test 0.2.10.5:** odśwież stronę `Ctrl+F5` (nagłówek 0.2.10.5), uruchom nowo pobrany rejestrator (tytuł okna i pierwszy wiersz 0.2.10.5), następnie zaimportuj wcześniej zapisane pliki `*_laps.csv` i `*_samples.csv` i sprawdź wykresy prędkości, gazu i hamulca. Nowa jazda nie jest wymagana do testu dashboardu.
 
 ### Co zmieniono w 0.2.10
 
