@@ -5,6 +5,6 @@ Prototyp webowy do analizy jazdy w Assetto Corsa Competizione.
 - [Uruchom dashboard Apex AI](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)
 - [Rejestrator ACC na Windows 11 — instrukcja](acc_collector/README.md)
 
-Wersja webowa działa w przeglądarce. Do zbierania rzeczywistej telemetrii użyj lokalnego rejestratora, a następnie zaimportuj pliki `*_laps.csv` i `*_samples.csv` do dashboardu. Import surowej telemetrii działa od 0.2.8, a od **0.2.9** dashboard pokazuje wykres prędkości wybranego okrążenia, a od **0.2.10** również wykres gazu i hamulca. Wybór okrążenia jest zsynchronizowany między wykresami. Rejestrator nie zmienił się w 0.2.10. Pliki są przechowywane na Twoim komputerze. Konsultacje z prawdziwym modelem AI i komunikacja głosowa na żywo są planowane na później.
+Wersja webowa działa w przeglądarce. Do zbierania rzeczywistej telemetrii użyj lokalnego rejestratora, a następnie zaimportuj pliki `*_laps.csv` i `*_samples.csv` do dashboardu. Import surowej telemetrii działa od 0.2.8, a od **0.2.9** dashboard pokazuje wykres prędkości wybranego okrążenia, a od **0.2.10** również wykres gazu i hamulca. Wybór okrążenia jest zsynchronizowany między wykresami. **Aktualna wersja 0.2.10.5** ujednolica numer wersji dashboardu i rejestratora, bez zmian sposobu odczytu ACC i formatu CSV. Pliki są przechowywane na Twoim komputerze. Konsultacje z prawdziwym modelem AI i komunikacja głosowa na żywo są planowane na później.
 
 **Status:** eksperymentalny kod rejestratora; wymaga testu z uruchomionym ACC.
