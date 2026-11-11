@@ -1,4 +1,4 @@
-# Apex AI 0.2.7 — rejestrator ACC na Windows 11
+# Apex AI 0.2.8 — rejestrator ACC na Windows 11
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -7,13 +7,24 @@
 3. W folderze `acc_collector` kliknij dwukrotnie **Start-ApexACC.cmd**.
 4. Przejedź minimum 2–3 pełne okrążenia, obserwując komunikaty o okrążeniach w okienku rejestratora.
 5. Zatrzymaj rejestrator naciskając **Ctrl+C** w jego oknie, a następnie potwierdzając zakończenie, jeśli Windows zapyta.
-6. W Apex AI w przeglądarce kliknij **Importuj CSV** i wybierz plik kończący się na **_laps.csv**.
+6. W Apex AI w przeglądarce kliknij **Importuj okrążenia** i wybierz plik kończący się na **_laps.csv**.
+7. Kliknij **Importuj telemetrię** i wybierz odpowiadający mu plik **_samples.csv** z tej samej sesji. Dashboard pokaże liczbę wczytanych próbek.
 
 **Folder wyników:** `Dokumenty\ApexAI\sessions` (rzeczywisty systemowy katalog Dokumenty, także gdy przekierowany do OneDrive).
 
 Powstają dwa pliki dla każdej sesji:
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.8
+
+- Dashboard umożliwia osobny import pliku `*_samples.csv` (surowa telemetria ACC) bez modyfikowania rejestratora.
+- Sprawdza nagłówki, czas UTC i wymagane wartości liczbowe, a następnie pokazuje liczbę wczytanych próbek i dostępne kanały.
+- Jeśli nazwy plików wskazują różne sesje, nie pozwala przypadkowo połączyć ich danych. Import nowego pliku okrążeń usuwa niepasującą telemetrię poprzedniej sesji.
+- Dane pozostają **wyłącznie w pamięci przeglądarki** podczas bieżącej pracy. Wykresy z surowej telemetrii pojawią się w kolejnych wersjach.
+- Rejestrator, próbkowanie i formaty CSV pozostają bez zmian.
+
+**Test 0.2.8:** nie musisz jechać kolejnego stintu. Otwórz dashboard, odśwież `Ctrl+F5`, zaimportuj oba pliki z testu 0.2.7 (`acc_20261111_153200_7263_laps.csv` i `acc_20261111_153200_7263_samples.csv`). Powinno pojawić się **7 956 próbek** oraz informacja, że oba pliki są z tej samej sesji. Sprawdź również, czy nadal wyświetlają się czasy okrążeń i wykres sektorów.
 
 ### Co zmieniono w 0.2.7
 
@@ -80,7 +91,7 @@ Powstają dwa pliki dla każdej sesji:
 - Integracja była testowana w ACC, ale wymaga dalszych testów stabilności i zgodności na różnych konfiguracjach.
 - Zarejestrowane temperatury **nie oznaczają zmierzonego zużycia opon**. Nie należy diagnozować degradacji wyłącznie z temperatur.
 - Dane wpisane jako `fuel` traktujemy roboczo jako litry, ale należy porównać wskazanie z grą podczas pierwszego testu.
-- Jeśli strona Apex AI jest otwarta z Internetu przez GitHub Pages, pliki `*_samples.csv` nie są jeszcze analizowane w dashboardzie.
+- Pliki `*_samples.csv` można importować do dashboardu, ale szczegółowe wykresy i analiza surowej telemetrii nie są jeszcze dostępne. Dane pozostają lokalnie w przeglądarce.
 - Uruchamiaj wyłącznie kod, którego źródło znasz; plik CMD uruchamia dołączony skrypt PowerShell w procesie z polityką `Bypass`, bez trwałej zmiany ustawień systemu.
 
 ### Źródła formatu Shared Memory
