@@ -1,4 +1,4 @@
-# Apex AI 0.2.6 - ACC telemetry collector for Windows 11
+# Apex AI 0.2.7 - ACC telemetry collector for Windows 11
 # Reads ACC shared memory locally. No admin rights, Python, cloud or API key required.
 # The lap CSV is compatible with the existing Apex AI website.
 $ErrorActionPreference = "Stop"
@@ -8,6 +8,25 @@ $folder = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "ApexAI\sessio
 $encoding = New-Object System.Text.UTF8Encoding($false)
 # Experimental target: 50 samples/second; actual rate depends on Windows scheduling and ACC.
 $sampleIntervalMs = 20
+# Windows' default timer resolution can round short sleeps up to ~16 ms.
+# Request a 1 ms multimedia timer for this process; release it on exit.
+$highResolutionTimerActive = $false
+try {
+    Add-Type -TypeDefinition @'
+using System.Runtime.InteropServices;
+public static class ApexTimerResolution {
+    [DllImport("winmm.dll", ExactSpelling = true)]
+    public static extern uint timeBeginPeriod(uint period);
+    [DllImport("winmm.dll", ExactSpelling = true)]
+    public static extern uint timeEndPeriod(uint period);
+}
+'@ -ErrorAction Stop
+    $highResolutionTimerActive = ([ApexTimerResolution]::timeBeginPeriod(1) -eq 0)
+}
+catch {
+    # Timer optimization is optional: the collector must still run without it.
+    $highResolutionTimerActive = $false
+}
 
 function N([object]$value, [int]$digits = 3) {
     if ($null -eq $value) { return "" }
@@ -77,17 +96,24 @@ $lapWriter = $null; $sampleWriter = $null
 $active = $false; $previousLap = -1; $previousSector = -1
 $lapStartTime = $null; $boundaryTime = $null
 $estSector1 = $null; $estSector2 = $null
+$pendingFinish = $null
 $previousPacket = -1; $lastProgress = Get-Date
 $waitMessageShown = $false
 $latestTrackId = ""; $latestCarId = ""
 $trackId = ""; $carId = ""
 $nextInfoCheck = Get-Date
 
-Write-Host "APEX AI 0.2.6 | Rejestrator ACC" -ForegroundColor Cyan
+Write-Host "APEX AI 0.2.7 | Rejestrator ACC" -ForegroundColor Cyan
 Write-Host "Zapis danych: $folder"
 Write-Host "Uruchom ACC i wejdz na tor. Zatrzymanie: Ctrl+C."
 Write-Host "Pliki _laps.csv wgrasz do Apex AI; _samples.csv to surowe dane do przyszlej analizy."
 Write-Host "Eksperymentalne probkowanie: 50 Hz (co 20 ms). Rzeczywista czestotliwosc wymaga testu."
+if ($highResolutionTimerActive) {
+    Write-Host "Timer Windows: tryb 1 ms aktywny." -ForegroundColor Green
+}
+else {
+    Write-Host "Timer Windows: tryb 1 ms niedostepny; uzywam standardowego." -ForegroundColor Yellow
+}
 Write-Host ""
 
 try {
@@ -237,36 +263,62 @@ try {
                 $previousSector = $sector
                 $lapStartTime = $null; $boundaryTime = Get-Date
                 $estSector1 = $null; $estSector2 = $null
+                $pendingFinish = $null
                 $active = $true
                 Write-Host "Sesja: $lapPath" -ForegroundColor Green
             }
 
             # ACC lastSectorTime may be unavailable in some sessions.
-            # As a fallback, derive APPROXIMATE S1/S2 from sector boundary
-            # transitions (50 Hz target sampling), not from unverified SDK values.
-            # S3 is residual to the official completed lap time.
+            # Approximate S1/S2 from observed sector boundaries, never claim
+            # that these are official ACC sector times.
             $now = Get-Date
             $sectorChanged = ($sector -ne $previousSector)
             if ($sectorChanged) {
+                if ($previousSector -eq 2 -and $sector -eq 0) {
+                    # ACC may reset the sector to 0 BEFORE completedLaps
+                    # advances (observed 31-67 ms in real 0.2.6 logs).
+                    # Preserve the finished lap's boundaries until its
+                    # completed-lap counter and official time arrive.
+                    $pendingFinish = @{
+                        LapStart = $lapStartTime
+                        Sector1 = $estSector1
+                        Sector2 = $estSector2
+                        FinishedAt = $now
+                    }
+                    $lapStartTime = $now
+                    $estSector1 = $null; $estSector2 = $null
+                }
                 if ($previousSector -eq 0 -and $sector -eq 1 -and $lapStartTime) {
                     $estSector1 = ($now - $lapStartTime).TotalMilliseconds
                 }
                 if ($previousSector -eq 1 -and $sector -eq 2 -and $boundaryTime) {
                     $estSector2 = ($now - $boundaryTime).TotalMilliseconds
                 }
+                $boundaryTime = $now
             }
 
             if ($completed -gt $previousLap) {
                 if ($completed -eq ($previousLap + 1) -and $lastLapMs -gt 10000 -and $lastLapMs -lt 600000) {
                     $sectorValues = @("", "", "")
                     $sectorSource = ""
-                    if ($lapStartTime -and $estSector1 -and $estSector2 -and
-                        [Math]::Abs(($now - $lapStartTime).TotalMilliseconds - $lastLapMs) -lt 1500) {
-                        $s3estimate = $lastLapMs - $estSector1 - $estSector2
-                        if ($estSector1 -gt 0.07 * $lastLapMs -and $estSector1 -lt 0.75 * $lastLapMs -and
-                            $estSector2 -gt 0.07 * $lastLapMs -and $estSector2 -lt 0.75 * $lastLapMs -and
+                    $sectorLapStart = $lapStartTime
+                    $sectorOne = $estSector1
+                    $sectorTwo = $estSector2
+                    # Use the preserved finish only if it belongs to this
+                    # just-completed lap, not a previous outlap or old session.
+                    if ($pendingFinish -and
+                        [Math]::Abs(($now - $pendingFinish.FinishedAt).TotalMilliseconds) -lt 2000) {
+                        $sectorLapStart = $pendingFinish.LapStart
+                        $sectorOne = $pendingFinish.Sector1
+                        $sectorTwo = $pendingFinish.Sector2
+                    }
+                    if ($sectorLapStart -and $sectorOne -and $sectorTwo -and
+                        [Math]::Abs(($now - $sectorLapStart).TotalMilliseconds - $lastLapMs) -lt 1500) {
+                        $s3estimate = $lastLapMs - $sectorOne - $sectorTwo
+                        if ($sectorOne -gt 0.07 * $lastLapMs -and $sectorOne -lt 0.75 * $lastLapMs -and
+                            $sectorTwo -gt 0.07 * $lastLapMs -and $sectorTwo -lt 0.75 * $lastLapMs -and
                             $s3estimate -gt 0.07 * $lastLapMs -and $s3estimate -lt 0.75 * $lastLapMs) {
-                            $sectorValues = @((N ($estSector1 / 1000)), (N ($estSector2 / 1000)), (N ($s3estimate / 1000)))
+                            $sectorValues = @((N ($sectorOne / 1000)), (N ($sectorTwo / 1000)), (N ($s3estimate / 1000)))
                             $sectorSource = "estimated_50hz"
                         }
                     }
@@ -283,15 +335,7 @@ try {
                     Write-Host "Pominieto niepelne okrazenie lub nieprawidlowy czas." -ForegroundColor Yellow
                 }
                 $previousLap = $completed
-            }
-
-            # Mark the start of the next full lap (also after an outlap).
-            if ($sectorChanged) {
-                if ($previousSector -eq 2 -and $sector -eq 0) {
-                    $lapStartTime = $now
-                    $estSector1 = $null; $estSector2 = $null
-                }
-                $boundaryTime = $now
+                $pendingFinish = $null
             }
 
             $line = @(
@@ -304,11 +348,11 @@ try {
             )
             $sampleWriter.WriteLine(($line -join ","))
             $previousSector = $sector
-            # Keep the entire read/process/write cycle near 20 ms, rather
-            # than sleeping 20 ms on top of processing time.
+            # Compensate for read/process/write time; Thread.Sleep avoids
+            # the extra PowerShell cmdlet overhead of Start-Sleep.
             $elapsedMs = 1000.0 * ([System.Diagnostics.Stopwatch]::GetTimestamp() - $sampleStarted) / [System.Diagnostics.Stopwatch]::Frequency
             $remainingMs = [int][Math]::Floor($sampleIntervalMs - $elapsedMs)
-            if ($remainingMs -gt 0) { Start-Sleep -Milliseconds $remainingMs }
+            if ($remainingMs -gt 0) { [System.Threading.Thread]::Sleep($remainingMs) }
         }
         catch {
             Write-Host ("Odczyt przerwany: " + $_.Exception.Message) -ForegroundColor Yellow
@@ -330,4 +374,5 @@ finally {
     if ($p) { $p.Dispose() }
     if ($gm) { $gm.Dispose() }
     if ($pm) { $pm.Dispose() }
+    if ($highResolutionTimerActive) { [void][ApexTimerResolution]::timeEndPeriod(1) }
 }
