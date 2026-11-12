@@ -1,4 +1,4 @@
-# Apex AI 0.2.10.5 — dashboard i rejestrator ACC
+# Apex AI 0.2.11 — dashboard i rejestrator ACC
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -15,6 +15,17 @@
 Powstają dwa pliki dla każdej sesji (gdy rejestrator uruchomiono tylko raz):
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.11
+
+- Dodano do dashboardu **porównanie dwóch wybranych okrążeń** na trzech wykresach: prędkość, gaz i hamulec. Kolor turkusowy oznacza okrążenie A, pomarańczowy okrążenie B.
+- Porównanie korzysta z istniejących plików `*_samples.csv`. Próbki są wyrównywane do wspólnej osi postępu okrążenia (0–100%) z interpolacją liniową; brakujących fragmentów nie ekstrapolujemy. **Nie jest to porównanie po czasie ani automatyczna diagnoza błędów.**
+- Gdy zaimportowano także odpowiadający plik `*_laps.csv`, dashboard pokazuje czasy A i B oraz różnicę **B − A** (wartość ujemna = B szybsze).
+- Pozostawiono osobne wykresy prędkości, gazu i hamulca z 0.2.10.5 oraz wybór pojedynczego okrążenia.
+- W rejestratorze zmieniono **wyłącznie napis wersji** w konsoli i tytule okna na 0.2.11. Odczyt ACC, format CSV, blokada drugiej instancji i próbkowanie pozostają identyczne.
+- Testy automatyczne obejmują składnię JavaScript, interpolację, luki w danych, rysowanie trzech wykresów i wyświetlanie różnicy czasów. **Test z rzeczywistym ACC nadal wymagany.**
+
+**Test 0.2.11:** otwórz dashboard, odśwież `Ctrl+F5`, sprawdź nagłówek `0.2.11`. Zaimportuj `acc_20261111_182843_7449_laps.csv` i `acc_20261111_182843_7449_samples.csv` (Ferrari, Imola), wybierz A=1 i B=2. Oczekiwana różnica **B − A = −0.022 s** (1:46.355 minus 1:46.377). Sprawdź trzy nakładające się wykresy i zmianę obu list. Aby rejestrator również pokazywał 0.2.11, pobierz nowy ZIP repozytorium i uruchom nowy CMD. Prześlij oba CSV i zrzuty wykresów po nowym teście.
 
 ### Co zmieniono w 0.2.10.5
 
