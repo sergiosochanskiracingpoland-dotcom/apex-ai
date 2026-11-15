@@ -247,7 +247,7 @@ function compareSvg(curves,key,start,end,cursor){
 function readoutRow(label,curves,multiplier,unit,index){
   const a=curves[0][index],b=curves[1][index],ok=Number.isFinite(a)&&Number.isFinite(b);
   const fmtValue=v=>Number.isFinite(v)?(v*multiplier).toFixed(1)+' '+unit:'—';
-  const difference=ok?((b-a)*multiplier>=0?'+':'')+((b-a)*multiplier).toFixed(1)+' '+unit:'—';
+  const difference=ok?((b-a)*multiplier>=0?'+':'')+((b-a)*multiplier).toFixed(1)+' '+(unit==='%'?'p.p.':unit):'—';
   return '<tr><td>'+label+'</td><td>'+fmtValue(a)+'</td><td>'+fmtValue(b)+'</td><td>'+difference+'</td></tr>';
 }
 function showCompare(){
@@ -344,7 +344,7 @@ function parseSamplesCSV(text){
 function storage(k){try{return JSON.parse(localStorage.getItem(k)||'[]')}catch{return []}}function put(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function history(){let h=storage('apexSessions');$('hist').innerHTML=h.length?'<div class="scroll"><table><tr><th>Data</th><th>Okrążenia</th><th>Best</th><th>Średnie</th></tr>'+h.map(x=>'<tr><td>'+x.date+'</td><td>'+x.laps+'</td><td>'+x.best+'</td><td>'+x.mean+'</td></tr>').join('')+'</table></div>':'Brak zapisanych sesji.';let s=storage('apexSetups');$('setupList').innerHTML=s.length?'<div class="scroll"><table><tr><th>Setup</th><th>Best</th><th>Średnie</th><th>Odchylenie</th></tr>'+s.map(x=>'<tr><td>'+x.name.replace(/[&<>"]/g,'')+'</td><td>'+x.best+'</td><td>'+x.mean+'</td><td>'+x.sd+'</td></tr>').join('')+'</table></div>':'Brak zapisanych setupów.';}
 function answer(q){if(!rows.length)return 'Najpierw wczytaj dane sesji.';let a=getAnalysis(),s=q.toLowerCase();if(/paliw|fuel|spal/.test(s))return Number.isFinite(a.burn)?'Średnie zużycie wynosi około '+a.burn.toFixed(2)+' L/okr. To estymacja z zapisanych pomiarów, bez rezerwy strategicznej.':getAnalysis().fuelUnchanged?'W CSV nie widać mierzalnego spadku paliwa. Sprawdź, czy zużycie jest włączone.':'Nie mam wystarczających danych o paliwie.';if(/sektor|sector/.test(s))return 'Średnie czasy sektorów: '+a.sec.map((x,i)=>'S'+(i+1)+': '+(Number.isFinite(x)?x.toFixed(3)+' s':'brak danych')).join(', ')+'. Do wskazania konkretnego zakrętu potrzebna jest telemetria wysokiej częstotliwości.';if(/opon|temper|tyre|tire/.test(s)){let v=rows.flatMap(r=>['tyre_fl','tyre_fr','tyre_rl','tyre_rr'].map(k=>r[k]).filter(Number.isFinite));return v.length?'Średnia temperatura opon w próbkach: '+avg(v).toFixed(1)+' °C. Bez ciśnień, warunków i przebiegu nie diagnozuję degradacji.':'W danych nie ma temperatur opon ani ciśnień.'}if(/stabil|regular|błęd|blad|tempo|woln|popraw|trening/.test(s))return 'Najlepsze '+fmt(a.best)+', średnie '+fmt(a.mean)+', odchylenie '+a.spread.toFixed(2)+' s. '+(a.trend>.4?'Końcówka jest wolniejsza o '+a.trend.toFixed(2)+' s — sprawdź zmęczenie, opony i błędy.':'Tempo w końcówce nie pogorszyło się wyraźnie.')+' Nie można określić dokładnej przyczyny bez dodatkowych danych.';return 'Znam Twoje czasy, sektory i dostępne próbki paliwa/opon. Zapytaj o tempo, stabilność, sektory, paliwo lub opony. Nie mam jeszcze pełnego modelu językowego.';}
-$('demo').onclick=()=>{rows=sample();demoActive=true;lapFileName='';telemetrySamples=[];speedLaps=[];selectedSpeedLap=null;compareLapA=null;compareLapB=null;samplesFileName='';show();showTelemetry()};
+$('demo').onclick=()=>{rows=sample();demoActive=true;lapFileName='';telemetrySamples=[];speedLaps=[];selectedSpeedLap=null;compareLapA=null;compareLapB=null;zoomStart=0;zoomEnd=100;cursorProgress=50;samplesFileName='';show();showTelemetry()};
 $('file').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
   try{
@@ -364,7 +364,7 @@ $('samplesFile').onchange=async e=>{
     const lapKey=sessionKey(lapFileName),sampleKey=sessionKey(file.name);
     if(lapKey&&sampleKey&&lapKey!==sampleKey)throw Error('Plik telemetrii pochodzi z innej sesji niż wczytane okrążenia. Wczytaj odpowiadający mu plik _laps.csv.');
     const imported=parseSamplesCSV(await file.text());
-    telemetrySamples=imported;speedLaps=completeSpeedLaps(imported);selectedSpeedLap=null;compareLapA=null;compareLapB=null;samplesFileName=file.name;
+    telemetrySamples=imported;speedLaps=completeSpeedLaps(imported);selectedSpeedLap=null;compareLapA=null;compareLapB=null;zoomStart=0;zoomEnd=100;cursorProgress=50;samplesFileName=file.name;
     if(demoActive){rows=[];demoActive=false;clearLapDisplay();$('status').textContent='Zaimportuj odpowiadający plik _laps.csv, aby wyświetlić czasy okrążeń.';}
     showTelemetry();
   }catch(err){alert('Błąd CSV telemetrii: '+err.message)}
