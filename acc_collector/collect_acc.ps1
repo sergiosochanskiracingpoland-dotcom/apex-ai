@@ -1,4 +1,4 @@
-# Apex AI 0.2.13 - ACC telemetry collector for Windows 11
+# Apex AI 0.2.14 - ACC telemetry collector for Windows 11
 # Reads ACC shared memory locally. No admin rights, Python, cloud or API key required.
 # The lap CSV is compatible with the existing Apex AI website.
 $ErrorActionPreference = "Stop"
@@ -120,11 +120,11 @@ $latestTrackId = ""; $latestCarId = ""
 $trackId = ""; $carId = ""
 $nextInfoCheck = Get-Date
 
-Write-Host "APEX AI 0.2.13 | Rejestrator ACC" -ForegroundColor Cyan
+Write-Host "APEX AI 0.2.14 | Rejestrator ACC" -ForegroundColor Cyan
 Write-Host "Zapis danych: $folder"
 Write-Host "Uruchom ACC i wejdz na tor. Zatrzymanie: Ctrl+C."
 Write-Host "Pliki _laps.csv wgrasz do Apex AI; _samples.csv to surowe dane do przyszlej analizy."
-Write-Host "Eksperymentalne probkowanie: 50 Hz (co 20 ms). Rzeczywista czestotliwosc wymaga testu."
+Write-Host "Eksperymentalny cel: 50 Hz (co 20 ms). Rzeczywista czestotliwosc zobaczysz w dashboardzie po imporcie _samples.csv."
 if ($highResolutionTimerActive) {
     Write-Host "Timer Windows: tryb 1 ms aktywny." -ForegroundColor Green
 }
