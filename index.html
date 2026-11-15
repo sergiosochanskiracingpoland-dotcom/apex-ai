@@ -5,7 +5,7 @@
 :root{color-scheme:dark;--bg:#090e18;--panel:#131d2c;--line:#263447;--txt:#eaf2ff;--muted:#91a4ba;--accent:#53d9bd}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px system-ui,Segoe UI,sans-serif}header{padding:22px 5%;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center}h1{margin:0;font-size:24px;letter-spacing:2px}h2{font-size:19px;margin:0 0 15px}h3{margin:0 0 10px}.sub,small{color:var(--muted)}main{max-width:1200px;margin:auto;padding:24px 18px}nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}button,.upload{background:#1c2b40;color:var(--txt);border:1px solid #35506a;border-radius:10px;padding:10px 15px;cursor:pointer;font:inherit}button:hover,.upload:hover{border-color:var(--accent)}button.active,.primary{background:#155c55;border-color:#36a895}input,select{background:#0d1624;color:var(--txt);border:1px solid #3c5168;border-radius:8px;padding:10px;max-width:100%}.upload input{display:none}.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat{background:#101b29;border-radius:12px;padding:17px}.stat b{font-size:24px;display:block;margin-top:8px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.hidden{display:none!important}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px}th{color:var(--muted)}.scroll{overflow-x:auto}svg{width:100%;height:240px}#speedPlot,#pedalPlot{height:300px}.comparePlot{height:250px}.compareControls input[type=range]{width:155px;max-width:35vw;accent-color:var(--accent)}.compareReadout td,.compareReadout th{font-variant-numeric:tabular-nums}.compareReadout{margin:0 0 20px}.racePlot{height:260px}.racePriority li{margin:10px 0;padding-bottom:10px;border-bottom:1px solid var(--line)}.racePriority button,.raceZones button{padding:6px 9px;margin-left:8px;font-size:13px}.raceLegend{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0}.raceZones td{white-space:nowrap}.raceHint{margin:12px 0;color:var(--muted)}ul{padding-left:20px;line-height:1.8}.chat{height:280px;overflow:auto;background:#0d1624;border-radius:12px;padding:12px;margin:12px 0}.bubble{padding:10px 12px;border-radius:12px;background:#20334b;margin:8px 0;max-width:90%}.bubble.me{background:#155c55;margin-left:auto}.chatbar{display:flex;gap:8px}.chatbar input{flex:1}.pill{color:var(--accent)}@media(max-width:700px){.stats,.grid{grid-template-columns:1fr 1fr}.grid{display:block}.stats{gap:8px}.stat b{font-size:19px}header{display:block}} 
 </style></head><body>
-<header><div><h1>APEX <span style="color:var(--accent)">AI</span></h1><div class="sub">RACE ENGINEER • ACC ALPHA 0.2.13</div></div><span class="pill">● Local prototype</span></header>
+<header><div><h1>APEX <span style="color:var(--accent)">AI</span></h1><div class="sub">RACE ENGINEER • ACC ALPHA 0.2.14</div></div><span class="pill">● Local prototype</span></header>
 <main><div class="controls"><button class="primary" id="demo">Załaduj sesję demo</button><label class="upload">Importuj okrążenia <input id="file" type="file" accept=".csv,text/csv"></label><label class="upload">Importuj telemetrię <input id="samplesFile" type="file" accept=".csv,text/csv"></label><button id="save">Zapisz sesję</button><small id="samplesStatus" role="status">Telemetria: nie wczytano pliku _samples.csv.</small><small id="status">Dane demonstracyjne są fikcyjne. CSV: lap,time,s1,s2,s3,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr</small></div>
 <nav id="nav"><button data-tab="dashboard" class="active">Dashboard</button><button data-tab="stint">Analiza stintu</button><button data-tab="history">Historia</button><button data-tab="setups">Setupy</button><button data-tab="coach">Inżynier AI</button></nav>
 <section id="dashboard"><div class="stats" id="stats"></div><div class="grid"><div class="card"><h2>Tempo okrążeń</h2><svg id="plot" viewBox="0 0 600 240" role="img" aria-label="Wykres czasów okrążeń"></svg></div><div class="card"><h2>Priorytety treningowe</h2><ul id="tips"></ul></div></div><div class="card"><h2>Sektory według okrążeń</h2><svg id="sectorPlot" viewBox="0 0 600 260" role="img" aria-label="Wykres czasów sektorów"></svg><small>Sektory są szacowane z przejść między sektorami, a nie pobierane jako oficjalne splity ACC.</small></div><div class="card"><h2>Telemetria z ACC</h2><p id="telemetrySummary">Nie wczytano pliku _samples.csv.</p><small>Dane są wczytywane lokalnie w przeglądarce. Wykresy prędkości, gazu i hamulca znajdują się poniżej.</small></div><div class="card"><h2>Prędkość na okrążeniu</h2><div class="controls"><label for="speedLap">Okrążenie:</label><select id="speedLap" disabled aria-label="Wybierz okrążenie do wykresu prędkości"></select><small id="speedInfo" role="status">Zaimportuj plik _samples.csv, aby zobaczyć wykres.</small></div><svg id="speedPlot" viewBox="0 0 720 280" role="img" aria-label="Prędkość w km/h względem postępu okrążenia"></svg><small>Oś X: postęp okrążenia (0–100%). Oś Y: prędkość (km/h). Wykres poglądowy; pełne dane pozostają w pamięci przeglądarki.</small></div><div class="card"><h2>Gaz i hamulec na okrążeniu</h2><div class="controls"><label for="pedalLap">Okrążenie:</label><select id="pedalLap" disabled aria-label="Wybierz okrążenie do wykresu gazu i hamulca"></select><small id="pedalInfo" role="status">Zaimportuj plik _samples.csv, aby zobaczyć wykres.</small></div><div class="controls"><span style="color:#53d9bd">● Gaz</span><span style="color:#ff956b">● Hamulec</span></div><svg id="pedalPlot" viewBox="0 0 720 280" role="img" aria-label="Użycie gazu i hamulca w procentach względem postępu okrążenia"></svg><small>Oś X: postęp okrążenia (0–100%). Oś Y: wciśnięcie pedału (0–100%). Oba wykresy pokazują to samo wybrane okrążenie, bez wygładzania danych.</small></div><div class="card" id="comparisonCard"><h2>Porównanie dwóch okrążeń</h2><div class="controls"><label for="compareA">Okrążenie A:</label><select id="compareA" disabled></select><label for="compareB">Okrążenie B:</label><select id="compareB" disabled></select></div><p id="compareInfo" role="status">Zaimportuj minimum dwa pełne okrążenia.</p><div class="controls compareControls"><label for="compareStart">Od:</label><input id="compareStart" type="range" min="0" max="95" step="5" value="0" disabled><label for="compareEnd">Do:</label><input id="compareEnd" type="range" min="5" max="100" step="5" value="100" disabled><strong id="compareRangeLabel">0–100% toru</strong><button id="compareReset" disabled>Całe okrążenie</button></div><div class="controls compareControls"><label for="compareCursor">Odczyt w punkcie:</label><input id="compareCursor" type="range" min="0" max="100" step="0.5" value="50" disabled><strong id="compareCursorLabel">50,0% toru</strong></div><div class="scroll compareReadout"><table aria-label="Dokładne wartości telemetrii w wybranym punkcie"><thead><tr><th>Parametr</th><th>Okrążenie A</th><th>Okrążenie B</th><th>Różnica B − A</th></tr></thead><tbody id="compareReadout"></tbody></table></div><div class="controls"><span style="color:#53d9bd">● Okrążenie A</span><span style="color:#ffba69">● Okrążenie B</span></div><h3>Prędkość (km/h)</h3><svg class="comparePlot" id="compareSpeed" viewBox="0 0 720 260"></svg><h3>Gaz (%)</h3><svg class="comparePlot" id="compareGas" viewBox="0 0 720 260"></svg><h3>Hamulec (%)</h3><svg class="comparePlot" id="compareBrake" viewBox="0 0 720 260"></svg><small>Oś X: postęp okrążenia (0–100%). Kolory oznaczają okrążenia. Suwaki ograniczają widoczny fragment trasy i wybierają punkt odczytu. Interpolacja liniowa bez ekstrapolacji; różnica prędkości w punkcie nie jest równoznaczna ze stratą czasu.</small></div><div class="card" id="raceAnalysis"><h2>Race Analysis Engine v1 <small>• analiza regułowa</small></h2><p id="raceStatus" role="status">Wczytaj telemetrię dwóch pełnych okrążeń.</p><h3>Mapa zmian czasu na fragmentach toru</h3><div class="raceLegend"><span style="color:#ffba69">■ B wolniejsze od A</span><span style="color:#53d9bd">■ B szybsze od A</span></div><svg id="raceDeltaPlot" class="racePlot" viewBox="0 0 760 260" role="img" aria-label="Różnice czasów na odcinkach po 5 procent długości toru"></svg><p class="raceHint" id="raceDeltaInfo">Wyniki są obliczane z czasu próbek UTC na tych samych fragmentach toru.</p><h3>Trzy priorytety analizy</h3><ul class="racePriority" id="racePriorities"></ul><h3>Wykryte strefy hamowania</h3><p class="raceHint" id="raceZoneInfo">Strefy są wykrywane z nacisku hamulca, bez przypisywania nazw zakrętów.</p><div class="scroll raceZones"><table><thead><tr><th>Strefa</th><th>Hamowanie A / B</th><th>Prędkość min. A / B</th><th>Powrót na gaz A / B</th><th>Wykres</th></tr></thead><tbody id="raceZoneBody"></tbody></table></div><small>Wyniki są szacunkowe i zależą od jakości próbek. Dodatnia różnica czasu oznacza, że okrążenie B było wolniejsze na danym odcinku. Porównanie nie identyfikuje automatycznie przyczyn ani konkretnych zakrętów. Odcinki bez wiarygodnych próbek są pomijane.</small></div><div class="card"><h2>Podsumowanie sesji</h2><p id="summary"></p></div></section>
@@ -328,27 +328,70 @@ function segmentDeltas(a,b){
   return segments;
 }
 function brakingZones(points){
-  const ordered=points.filter(p=>Number.isFinite(p.lap_progress)&&p.lap_progress>=0&&p.lap_progress<=1&&Number.isFinite(p.brake)&&Number.isFinite(p.speed_kmh)&&Number.isFinite(p.timestamp_ms))
+  // Detect braking episodes in timestamp order. Brief pedal releases may belong
+  // to the same corner complex; sustained full throttle separates episodes.
+  const ordered=points.filter(p=>Number.isFinite(p.lap_progress)&&p.lap_progress>=0&&p.lap_progress<=1&&Number.isFinite(p.brake)&&Number.isFinite(p.gas)&&Number.isFinite(p.speed_kmh)&&Number.isFinite(p.timestamp_ms))
     .slice().sort((a,b)=>a.timestamp_ms-b.timestamp_ms);
-  const active=ordered.filter(p=>p.brake>=0.18&&p.speed_kmh>35),groups=[];
-  let group=[];
-  for(const p of active){
-    const prev=group[group.length-1];
-    if(prev&&(p.lap_progress-prev.lap_progress>0.008||p.lap_progress<prev.lap_progress||p.timestamp_ms-prev.timestamp_ms>450)){
-      if(group.length)groups.push(group);group=[];
+  const groups=[];let current=[];
+  for(let i=0;i<ordered.length;i++){
+    const p=ordered[i];
+    if(p.brake<0.18||p.speed_kmh<=35)continue;
+    const prev=current.length?ordered[current[current.length-1]]:null;
+    if(prev&&(p.timestamp_ms-prev.timestamp_ms>650||p.lap_progress-prev.lap_progress>0.015||p.lap_progress<prev.lap_progress)){
+      groups.push(current);current=[];
     }
-    group.push(p);
+    current.push(i);
   }
-  if(group.length)groups.push(group);
+  if(current.length)groups.push(current);
+  const meaningful=groups.filter(g=>{
+    const first=ordered[g[0]],last=ordered[g[g.length-1]];
+    return last.timestamp_ms-first.timestamp_ms>=220&&last.lap_progress-first.lap_progress>=0.001&&g.some(i=>ordered[i].brake>=0.45);
+  });
+  const merged=[];
+  for(const g of meaningful){
+    const previous=merged[merged.length-1];
+    if(previous){
+      const last=previous[previous.length-1],first=g[0],gapMs=ordered[first].timestamp_ms-ordered[last].timestamp_ms;
+      const gapProgress=ordered[first].lap_progress-ordered[last].lap_progress;
+      let fullStart=null,longestFullMs=0;
+      for(let j=last+1;j<first;j++){
+        const p=ordered[j];
+        if(p.gas>=0.8){if(fullStart===null)fullStart=p.timestamp_ms;}
+        else if(fullStart!==null){longestFullMs=Math.max(longestFullMs,p.timestamp_ms-fullStart);fullStart=null;}
+      }
+      if(fullStart!==null)longestFullMs=Math.max(longestFullMs,ordered[first].timestamp_ms-fullStart);
+      if(gapMs>0&&gapMs<=1600&&gapProgress>=0&&gapProgress<=0.016&&longestFullMs<650){
+        previous.push(...g);continue;
+      }
+    }
+    merged.push(g.slice());
+  }
   const zones=[];
-  for(const g of groups){
-    const first=g[0],last=g[g.length-1],duration=(last.timestamp_ms-first.timestamp_ms)/1000;
-    if(duration<0.22||last.lap_progress-first.lap_progress<0.001||Math.max(...g.map(p=>p.brake))<0.45)continue;
-    const start=first.lap_progress*100,end=last.lap_progress*100;
-    const near=ordered.filter(p=>p.lap_progress>=first.lap_progress&&p.lap_progress<=Math.min(1,last.lap_progress+0.03));
-    const minSpeed=near.length?Math.min(...near.map(p=>p.speed_kmh)):NaN;
-    const resume=ordered.find(p=>p.lap_progress>last.lap_progress+0.001&&p.lap_progress<=last.lap_progress+0.08&&Number.isFinite(p.gas)&&p.gas>=0.8);
-    zones.push({start,end,minSpeed,resume:resume?resume.lap_progress*100:NaN,peak:Math.max(...g.map(p=>p.brake))});
+  for(let k=0;k<merged.length;k++){
+    const g=merged[k],first=ordered[g[0]],last=ordered[g[g.length-1]];
+    const nextStart=k+1<merged.length?ordered[merged[k+1][0]].lap_progress:1;
+    // End at the first return to >=80% throttle; allow 0.4% of track
+    // for speed to bottom out after brake release, never cross the next zone.
+    const limit=Math.min(1,last.lap_progress+0.04,nextStart);
+    let resume=null;
+    for(let i=g[g.length-1]+1;i<ordered.length;i++){
+      const p=ordered[i];
+      if(p.lap_progress>=limit)break;
+      if(p.lap_progress>last.lap_progress&&p.gas>=0.8){resume=p;break;}
+    }
+    const cutoff=Math.min(1,last.lap_progress+0.01,nextStart-0.00001,resume?resume.lap_progress+0.004:1);
+    let minSpeed=Infinity;
+    for(let i=g[0];i<ordered.length;i++){
+      const p=ordered[i];
+      if(p.lap_progress>cutoff)break;
+      if(p.lap_progress>=first.lap_progress)minSpeed=Math.min(minSpeed,p.speed_kmh);
+    }
+    zones.push({
+      start:first.lap_progress*100,end:last.lap_progress*100,
+      minSpeed:Number.isFinite(minSpeed)?minSpeed:NaN,
+      resume:resume?resume.lap_progress*100:NaN,
+      peak:Math.max(...g.map(i=>ordered[i].brake))
+    });
   }
   return zones.slice(0,24);
 }
@@ -406,12 +449,25 @@ function showRaceAnalysis(a,b){
   const p=result.priorities;
   if(!p.length)priority.innerHTML='<li>Brak istotnych różnic powyżej 0,025 s na pojedynczych odcinkach lub brak danych. Nie wyznaczam priorytetów na siłę.</li>';
   else priority.innerHTML=p.map((s,i)=>'<li><strong>'+(i+1)+'. Odcinek '+s.start+'–'+s.end+'% toru:</strong> '+(s.delta>=0?'B wolniejsze o ':'B szybsze o ')+Math.abs(s.delta).toFixed(3)+' s od A. '+(s.delta>=0?'Sprawdź hamowanie, prędkość minimalną i moment powrotu na gaz.':'Sprawdź, co zmieniło się w hamowaniu i przyspieszaniu względem A.')+' <button type="button" data-race-start="'+s.start+'" data-race-end="'+s.end+'">Pokaż na wykresie</button></li>').join('');
-  zoneInfo.textContent='Strefy wykryto z hamulca na okrążeniu A (próg 18%, co najmniej 0,22 s i szczyt 45%). Strefy B dopasowano według postępu trasy. Nie są to oficjalne granice zakrętów.';
+  zoneInfo.textContent='Strefy hamowania A: próg 18%, minimum 0,22 s, szczyt 45%. Bliskie dohamowania bez długiego powrotu na pełny gaz są łączone w jedną strefę. Minimum prędkości liczymy tylko do wyjścia z tej strefy, bez pobierania minimum z następnego hamowania. Strefy B dopasowano według postępu trasy; nie są to oficjalne granice zakrętów.';
   const val=(n,suffix,dec=1)=>Number.isFinite(n)?n.toFixed(dec)+suffix:'—';
   zoneBody.innerHTML=result.zones.length?result.zones.map(z=>{
     const start=Math.max(0,Math.floor((z.a.start-3)/5)*5),end=Math.min(100,Math.ceil((Math.max(z.a.end,z.b?z.b.end:z.a.end)+6)/5)*5);
     return '<tr><td>Strefa '+z.number+' ('+val(z.a.start,'%')+')</td><td>'+val(z.a.start,'%')+' / '+val(z.b?.start,'%')+'</td><td>'+val(z.a.minSpeed,' km/h')+' / '+val(z.b?.minSpeed,' km/h')+'</td><td>'+val(z.a.resume,'%')+' / '+val(z.b?.resume,'%')+'</td><td><button type="button" data-race-start="'+start+'" data-race-end="'+end+'">Pokaż</button></td></tr>';
   }).join(''):'<tr><td colspan="5">Nie wykryto stref spełniających kryteria.</td></tr>';
+}
+function samplingStats(samples){
+  // Effective rate from successive on-track samples, excluding pit/idle data
+  // and pauses >250 ms. The requested 50 Hz is only a target.
+  let count=0,totalMs=0,maxGapMs=0,slowGaps=0;
+  for(let i=1;i<samples.length;i++){
+    const a=samples[i-1],b=samples[i],dt=b.timestamp_ms-a.timestamp_ms;
+    if(a.completed_laps!==b.completed_laps||a.speed_kmh<=30||b.speed_kmh<=30||!Number.isFinite(dt)||dt<=0||dt>250)continue;
+    count++;totalMs+=dt;maxGapMs=Math.max(maxGapMs,dt);
+    if(dt>100)slowGaps++;
+  }
+  if(count<100||totalMs<=0)return null;
+  return {hz:count*1000/totalMs,count,maxGapMs,slowGaps};
 }
 function showTelemetry(){
   const count=telemetrySamples.length;
@@ -423,9 +479,11 @@ function showTelemetry(){
     return;
   }
   const label=count.toLocaleString('pl-PL')+' próbek';
-  $('samplesStatus').textContent='Telemetria: '+label+'.';
+  const sampling=samplingStats(telemetrySamples);
+  const hzLabel=sampling?' Rzeczywiste próbkowanie w ruchu: około '+sampling.hz.toFixed(1).replace('.',',')+' Hz (cel 50 Hz).':'';
+  $('samplesStatus').textContent='Telemetria: '+label+'.'+hzLabel;
   const paired=lapFileName&&sessionKey(lapFileName)&&sessionKey(lapFileName)===sessionKey(samplesFileName);
-  $('telemetrySummary').textContent='Wczytano '+label+' z '+samplesFileName+'. Dostępne: czas UTC, postęp okrążenia, prędkość, gaz, hamulec, bieg, RPM, paliwo, temperatury i ciśnienia opon.'+(paired?' Pliki okrążeń i telemetrii pochodzą z tej samej sesji.':' Aby powiązać dane z czasami okrążeń, zaimportuj odpowiadający plik _laps.csv.');
+  $('telemetrySummary').textContent='Wczytano '+label+' z '+samplesFileName+'. Dostępne: czas UTC, postęp okrążenia, prędkość, gaz, hamulec, bieg, RPM, paliwo, temperatury i ciśnienia opon.'+(sampling?' Efektywna częstotliwość w ruchu: '+sampling.hz.toFixed(1).replace('.',',')+' Hz (średnia z '+sampling.count.toLocaleString('pl-PL')+' odstępów próbek, pominięto przerwy >250 ms; cel 50 Hz). Najdłuższy uwzględniony odstęp: '+Math.round(sampling.maxGapMs)+' ms'+(sampling.slowGaps?', odstępów >100 ms: '+sampling.slowGaps:'')+'.':' Nie można jeszcze wiarygodnie oszacować rzeczywistej częstotliwości próbkowania.')+(paired?' Pliki okrążeń i telemetrii pochodzą z tej samej sesji.':' Aby powiązać dane z czasami okrążeń, zaimportuj odpowiadający plik _laps.csv.');
   showSpeedChart();
   showCompare();
 }
