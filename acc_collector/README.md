@@ -1,4 +1,4 @@
-# Apex AI 0.2.13 — dashboard i rejestrator ACC
+# Apex AI 0.2.14 — dashboard i rejestrator ACC
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -15,6 +15,21 @@
 Powstają dwa pliki dla każdej sesji (gdy rejestrator uruchomiono tylko raz):
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.14
+
+**Poprawki wiarygodności Race Analysis Engine v1 na podstawie testu Ferrari 296 GT3 / Imola z 15 listopada (7 okrążeń, 28 380 próbek).**
+
+1. **Koniec fałszywych minimów prędkości z następnego zakrętu.** W 0.2.13 minimum liczono do 3% długości toru za zakończeniem hamowania, przez co strefy 5/6 i 7/8 mogły pokazywać tę samą prędkość minimalną. Teraz pomiar kończy się po powrocie na >=80% gazu (z marginesem 0,4% toru), najpóźniej 1% toru po ostatnim hamowaniu i **zawsze przed następną niezależną strefą**.
+2. **Łączenie krótkich dohamowań.** Krótkie odpuszczenie hamulca nie musi tworzyć kolejnej strefy: epizody w odległości <=1,6% toru i <=1,6 s są łączone, o ile między nimi nie było >=0,65 s nieprzerwanego mocnego gazu (>=80%). Długie wyjście na gaz rozdziela strefy. To reguła heurystyczna — zakręty i szykany nie zawsze dadzą się rozdzielić idealnie.
+3. **Rzeczywista częstotliwość telemetrii.** Dashboard po imporcie `*_samples.csv` pokazuje efektywne Hz obliczone z kolejnych próbek podczas jazdy (prędkość >30 km/h, ten sam licznik okrążeń). Odrzucamy przerwy >250 ms i niepoprawne odstępy. W opisie podajemy liczbę użytych odstępów, najdłuższy uwzględniony odstęp i liczbę odstępów >100 ms. **50 Hz pozostaje celem, a nie deklaracją rzeczywistego wyniku.** W poprzedniej sesji było około 32,4 Hz.
+4. **Rejestrator:** nowy numer wersji w oknie i komentarzu, informacja gdzie sprawdzić rzeczywiste Hz. **Nie zmieniono** pętli pobierania próbek, formatu CSV, blokady wielu instancji ani rozdzielczości timera.
+
+**Test 0.2.14:** otwórz [dashboard](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/), użyj `Ctrl+F5` i zaimportuj wcześniejszą parę `acc_20261115_192717_1066_laps.csv` i `acc_20261115_192717_1066_samples.csv`. Wybierz porównanie okrążeń **3 i 7**. Na okrążeniu 3 oczekiwane jest około **8 wykrytych stref** (zamiast 9 w 0.2.13); hamowania około 54% i 57% powinny mieć **różne** prędkości minimalne (około 168 i 100 km/h), a krótkie dohamowanie około 69% zostanie połączone z poprzednim. Efektywne próbkowanie powinno wynosić około **32,4 Hz**. Sprawdź też przyciski `Pokaż`.
+
+**Następny test z ACC:** włącz normalne zużycie paliwa i opon w ustawieniach sesji; wykonaj 2 okrążenia rozgrzewkowe i 8–10 pełnych pomiarowych. Prześlij odpowiadające sobie pliki `*_laps.csv` i `*_samples.csv` oraz zrzut sekcji Race Analysis. **Ważne:** obecny collector zapisuje temperatury i ciśnienia opon, a nie bezpośredni procent zużycia bieżnika — włączenie zużycia nie dodaje automatycznie kolumny degradacji.
+
+**Status testów:** poprawki przeszły sprawdzenie składni i testy syntetyczne. Zostały dobrane również na podstawie surowej sesji Ferrari z Imoli. Wymagana jest jeszcze weryfikacja w przeglądarce i w kolejnej jeździe.
 
 ### Co zmieniono w 0.2.13
 
