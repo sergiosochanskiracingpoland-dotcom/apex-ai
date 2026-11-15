@@ -1,4 +1,4 @@
-# Apex AI 0.2.12 — dashboard i rejestrator ACC
+# Apex AI 0.2.13 — dashboard i rejestrator ACC
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -15,6 +15,21 @@
 Powstają dwa pliki dla każdej sesji (gdy rejestrator uruchomiono tylko raz):
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.13
+
+**Race Analysis Engine v1 — nowa sekcja pod wykresami porównawczymi.** Działa lokalnie, regułowo, bez zewnętrznego modelu AI:
+
+1. **Wykrywanie stref hamowania** z próbek hamulca na wybranym okrążeniu A. Progi: nacisk >=18%, szczyt >=45%, czas >=0,22 s, prędkość >35 km/h. Łączymy bliskie fragmenty; strefy nie są oficjalnymi granicami zakrętów.
+2. **Porównanie techniki A/B w strefach:** początek hamowania (procent postępu okrążenia), prędkość minimalna w strefie i do 3% trasy za nią oraz punkt powrotu do >=80% gazu. Strefy B dopasowywane są według początku hamowania (tolerancja 3,5% długości trasy); niedopasowane oznaczamy kreską.
+3. **Mapa zmian czasu B − A** na kolejnych odcinkach po 5% długości toru. Czasy są obliczane z UTC próbek interpolowanych względem postępu okrążenia. Dodatnie słupki = B wolniejsze na odcinku, ujemne = B szybsze. Nie ekstrapolujemy brakujących fragmentów, odrzucamy nieciągłe lub cofające się znaczniki czasu. Suma **nie musi równać się** różnicy pełnych czasów, ponieważ niekompletne odcinki są pomijane.
+4. **Trzy priorytety analizy** — odcinki o największej mierzalnej stracie B względem A (próg >0,025 s). Jeśli B nie traci na żadnym wiarygodnym odcinku, pokazujemy największe zyski. Wnioski są ostrożne: wskazują miejsce i sugerują sprawdzenie hamowania, prędkości i gazu, **nie przypisują automatycznie przyczyny**.
+5. **Przyciski „Pokaż”** w tabeli stref i na liście priorytetów automatycznie ustawiają przybliżenie trzech wykresów porównawczych i przenoszą widok do sekcji porównania.
+6. Wybór okrążeń A/B steruje analizą; zoom i suwak punktu odczytu z 0.2.12 pozostają bez zmian.
+
+**Przykładowy test 0.2.13:** 2 okrążenia rozgrzewkowe, następnie **10 pełnych okrążeń pomiarowych** bez restartowania sesji, najlepiej Ferrari 296 GT3 na Imoli w stałych warunkach. Włącz zużycie paliwa i opon, jeśli chcesz testować również ich analizę. Po zatrzymaniu rejestratora zaimportuj odpowiadające sobie `*_laps.csv` i `*_samples.csv`. Porównaj najlepsze okrążenie z wyraźnie wolniejszym; sprawdź mapę zmian czasu, strefy hamowania, trzy priorytety i przyciski przybliżenia. Prześlij oba pliki i zrzuty.
+
+**Uwaga:** dla wiarygodnego pomiaru czasów fragmentów potrzebne są ciągłe próbki UTC. Gdy są luki, dashboard pomija niepewne odcinki; nie obiecuje oficjalnej mapy strat czasu, nazw zakrętów ani jednoznacznej diagnozy. W rejestratorze zmieniono **wyłącznie numer wersji** w tytule i konsoli, bez zmian w odczycie ACC, blokadzie drugiej instancji i formacie CSV. Testy automatyczne na danych syntetycznych przeszły; rzeczywisty test w ACC pozostaje do wykonania.
 
 ### Co zmieniono w 0.2.12
 
