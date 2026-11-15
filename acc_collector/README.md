@@ -1,4 +1,4 @@
-# Apex AI 0.2.11 — dashboard i rejestrator ACC
+# Apex AI 0.2.12 — dashboard i rejestrator ACC
 
 ## Uruchomienie bez instalowania Pythona
 
@@ -15,6 +15,18 @@
 Powstają dwa pliki dla każdej sesji (gdy rejestrator uruchomiono tylko raz):
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
 - `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+
+### Co zmieniono w 0.2.12
+
+- **Przybliżanie trzech wykresów porównawczych** (prędkość, gaz, hamulec): suwaki `Od` i `Do` wybierają fragment postępu okrążenia z dokładnością do 5 punktów procentowych. Przycisk `Całe okrążenie` przywraca widok 0–100%.
+- **Odczyt w punkcie:** suwak `Odczyt w punkcie` (krok 0,5% trasy) pokazuje pionowy znacznik na wszystkich trzech wykresach oraz tabelę z wartościami okrążenia A, B i różnicą **B − A**. Dla gazu i hamulca wartości i różnice podawane są w procentach/ punktach procentowych. Dane są interpolowane z próbek ACC; różnica prędkości w punkcie nie oznacza bezpośrednio straty czasu.
+- **Dokładniejsze wykresy:** rozdzielczość wyrównania danych zwiększona z 0,5% do 0,1% postępu trasy. Brakujące fragmenty nie są ekstrapolowane.
+- **Ostrożniejsze wskazówki:** poniżej 5 okrążeń nie oceniamy regularności ani trendu tempa; gdy CSV nie pokazuje mierzalnego spadku paliwa, dashboard informuje o tym zamiast podawać `0,00 L/okr.`. Ulepszono również podsumowanie i odpowiedzi regułowego inżyniera o paliwie.
+- **Rejestrator:** tylko napis wersji w PowerShell i tytuł okna zmieniono na 0.2.12. Mechanizm odczytu ACC, format CSV, częstotliwość docelowa i blokada drugiej instancji pozostają bez zmian.
+
+**Test 0.2.12 bez nowej jazdy:** otwórz [dashboard](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/), odśwież `Ctrl+F5`, wczytaj istniejące pliki `acc_20261115_131708_1527_laps.csv` oraz `acc_20261115_131708_1527_samples.csv` (Ferrari 296 GT3, Imola). Powinny pojawić się 2 ukończone okrążenia, **17 516 próbek**, czasy **1:48.205** i **1:47.362**, różnica **B − A = −0.843 s**. Sprawdź zakres `25–50%`, przesuń suwak punktu odczytu i porównaj wartości w tabeli oraz znaczniki na wykresach. Priorytety treningowe powinny informować o zbyt małej liczbie okrążeń i braku mierzalnego spadku paliwa. Nie trzeba ponownie uruchamiać ACC, aby sprawdzić dashboard. Aby także okno rejestratora pokazywało 0.2.12, pobierz nowy ZIP repozytorium.
+
+**Status testów:** kod JavaScript i funkcje porównawcze sprawdzono automatycznie na danych syntetycznych (interpolacja, luki, zoom, odczyt, dwa okrążenia, brak danych). Weryfikacja wizualna i interakcyjna w przeglądarce użytkownika pozostaje do wykonania.
 
 ### Co zmieniono w 0.2.11
 
