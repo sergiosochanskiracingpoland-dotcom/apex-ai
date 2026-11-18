@@ -575,7 +575,7 @@ function engTrendSvg(series,unit){
 }
 function engMetrics(){
   const data=telemetrySamples, moving=data.filter(p=>p.speed_kmh>30), laps=speedLaps;
-  const lapRows=rows.filter(r=>Number.isFinite(r.fuel)&&r.fuel>=0&&r.fuel<=200&&Number.isFinite(r.lap));
+  const lapRows=demoActive?[]:rows.filter(r=>Number.isFinite(r.fuel)&&r.fuel>=0&&r.fuel<=200&&Number.isFinite(r.lap));
   const drops=[];
   for(let i=1;i<lapRows.length;i++){
     const drop=lapRows[i-1].fuel-lapRows[i].fuel;
