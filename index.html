@@ -583,7 +583,7 @@ function engMetrics(){
   }
   const fuelBurn=engMedian(drops),fuelSeries=lapRows.map(r=>r.fuel);
   const tyreLaps=laps.map(l=>({lap:l.lap, temp:ENG_WHEELS.map(w=>engFieldMean(l.points,'tyre_'+w,20,160)),pressure:ENG_WHEELS.map(w=>engFieldMean(l.points,'pressure_'+w,10,45)),
-    steer:engFieldMean(l.points,'steer_input',-1.5,1.5),steerAbs:engFieldMean(l.points.map(p=>({...p,steer_abs:Math.abs(p.steer_input)})),'steer_abs',0,1.5)}));
+    steer:engFieldMean(l.points,'steer_input',-1.5,1.5),steerAbs:(()=>{const v=l.points.map(p=>Math.abs(p.steer_input)).filter(x=>Number.isFinite(x)&&x<=1.5);return v.length>=Math.max(15,l.points.length*.5)?avg(v):NaN;})()}));
   const rpm=moving.map(p=>p.rpm).filter(v=>Number.isFinite(v)&&v>=0&&v<=15000);
   const gear=moving.map(p=>p.gear).filter(v=>Number.isInteger(v)&&v>=2&&v<=12);
   const planar=moving.map(p=>Number.isFinite(p.g_x)&&Number.isFinite(p.g_z)?Math.hypot(p.g_x,p.g_z):NaN).filter(v=>Number.isFinite(v)&&v<8);
@@ -601,9 +601,9 @@ function engMetrics(){
       packetComparisons++;if(a.physics_packet_id===b.physics_packet_id)repeatPhysics++;
     }
   }
-  return {fuelSeries,fuelBurn,drops,tyreLaps,rpmMax:rpm.length?Math.max(...rpm):NaN,
-    gearMax:gear.length?Math.max(...gear)-1:NaN,planarMax:planar.length?Math.max(...planar):NaN,
-    steerAbsMax:steer.length?Math.max(...steer.map(Math.abs)):NaN,tc:assist('tc_action','gas'),abs:assist('abs_action','brake'),
+  return {fuelSeries,fuelBurn,drops,tyreLaps,rpmMax:rpm.length?rpm.reduce((m,v)=>Math.max(m,v),-Infinity):NaN,
+    gearMax:gear.length?gear.reduce((m,v)=>Math.max(m,v),-Infinity)-1:NaN,planarMax:planar.length?planar.reduce((m,v)=>Math.max(m,v),-Infinity):NaN,
+    steerAbsMax:steer.length?steer.reduce((m,v)=>Math.max(m,Math.abs(v)),0):NaN,tc:assist('tc_action','gas'),abs:assist('abs_action','brake'),
     gaps,badTime,repeatPhysics,packetComparisons,pitSamples,movingCount:moving.length};
 }
 function showEngineering(){
