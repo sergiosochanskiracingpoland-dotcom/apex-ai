@@ -1,20 +1,36 @@
-# Apex AI 0.2.14 — dashboard i rejestrator ACC
+# Apex AI 0.2.15 — dashboard i rejestrator ACC
 
 ## Uruchomienie bez instalowania Pythona
 
 1. Na stronie repozytorium kliknij **Code → Download ZIP**, rozpakuj archiwum.
 2. Włącz **Assetto Corsa Competizione** i wejdź na tor (nie tylko do menu).
 3. W folderze `acc_collector` kliknij dwukrotnie **Start-ApexACC.cmd**.
-4. Przejedź minimum 2–3 pełne okrążenia, obserwując komunikaty o okrążeniach w okienku rejestratora.
+4. Do testu 0.2.15 przejedź 2 rozgrzewkowe i 8–10 pełnych okrążeń pomiarowych na **Imoli / Ferrari 296 GT3**, z **włączonym zużyciem paliwa i opon**. Obserwuj komunikaty w okienku rejestratora.
 5. Zatrzymaj rejestrator naciskając **Ctrl+C** w jego oknie, a następnie potwierdzając zakończenie, jeśli Windows zapyta.
 6. W Apex AI w przeglądarce kliknij **Importuj okrążenia** i wybierz plik kończący się na **_laps.csv**.
-7. Kliknij **Importuj telemetrię** i wybierz odpowiadający mu plik **_samples.csv** z tej samej sesji. Dashboard pokaże liczbę wczytanych próbek.
+7. Kliknij **Importuj telemetrię** i wybierz odpowiadający mu plik **_samples.csv** z tej samej sesji. Sprawdź analizę hamowań w **Dashboard** oraz nowe wykresy i diagnostykę w **Analiza stintu**.
 
 **Folder wyników:** `Dokumenty\ApexAI\sessions` (rzeczywisty systemowy katalog Dokumenty, także gdy przekierowany do OneDrive).
 
 Powstają dwa pliki dla każdej sesji (gdy rejestrator uruchomiono tylko raz):
 - `*_laps.csv`: ukończone okrążenia, czasy, paliwo, temperatury rdzenia opon; format współpracujący z obecnym dashboardem.
-- `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms między pomiarami), m.in. prędkość, gaz, hamulec, paliwo, ciśnienia i temperatury — baza pod przyszłe wykresy hamowania i coaching.
+- `*_samples.csv`: próbki z eksperymentalną docelową częstotliwością 50 Hz (20 ms), m.in. prędkość, gaz, hamulec, paliwo, temperatury i ciśnienia opon, skręt, przeciążenia, TC/ABS, pit lane i identyfikator pakietu fizyki. Nowe kolumny dołączono na końcu.
+
+### Co zmieniono w 0.2.15
+
+**Duża aktualizacja surowej telemetrii — kandydat do zamknięcia serii 0.2.x.**
+
+1. **Rejestrator ACC:** do istniejących 18 kolumn `*_samples.csv` dopisano: `steer_input`, `g_x`, `g_y`, `g_z`, `tc_action`, `abs_action`, cztery diagnostyczne `tyre_wear_*_raw`, `in_pit`, `physics_packet_id` (**razem 30 kolumn**). Dotychczasowe pola i format `*_laps.csv` są zachowane. 50 Hz nadal jest celem, nie gwarancją.
+2. **Zakładka „Analiza stintu”:** wykres poziomu paliwa po kolejnych okrążeniach; szacowanie spalania medianą poprawnych spadków między kolejnymi okrążeniami (odrzucamy wzrosty/tankowania i nielogiczne zmiany). Gdy paliwo nie spada — nie pokazujemy fikcyjnego spalania.
+3. **Opony:** wykresy średnich temperatur rdzenia i ciśnień dla FL/FR/RL/RR na kolejnych pełnych okrążeniach. Pola `tyre_wear_*_raw` zapisujemy **wyłącznie diagnostycznie**; dopóki nie potwierdzimy ich znaczenia i zmian w ACC przy włączonym zużyciu, **nie są procentem zużycia opon** ani dowodem degradacji.
+4. **Technika i elektronika:** zapis sterowania (surowe wejście, nie stopnie), przybliżonych przeciążeń G (wektor XYZ), analiza maksymalnych RPM i użytego najwyższego biegu. TC/ABS: odsetek próbek z interwencją przy odpowiednio wciśniętym gazie/hamulcu — **nie** liczba samodzielnych aktywacji, a zera nie dowodzą braku układu.
+5. **Jakość danych:** odstępy >250 ms, niepoprawne znaczniki czasu, próbki w pit lane i powtórzone pakiety fizyki. Okrążenia z pit lane lub przerwami >600 ms są wykluczane z **porównań telemetrycznych**; same czasy ukończonych okrążeń pozostają w tabeli. Dashboard nie zna oficjalnej ważności okrążenia.
+6. **Hamowania:** krótkie dohamowania łączone tylko przy odstępie do 900 ms i 0,7% toru, bez dłuższego powrotu na gaz. Dopasowanie A/B wymaga teraz zgodności **początku, końca i długości** hamowania. Gdy B ma połączone zakręty, pokazujemy „—” zamiast przypisywać minimum prędkości z innego zakrętu.
+7. **Wsteczna zgodność:** CSV 0.2.14 i wcześniejsze nadal można importować; nowa analiza korzysta z kolumn, które są dostępne. Żadne dane nie są wysyłane do serwera.
+
+**Scenariusz testowy:** pobierz świeży ZIP (stary CMD i PowerShell nie zbierają nowych pól), uruchom ACC i rejestrator 0.2.15. Ferrari 296 GT3 na Imoli, bez restartu między pomiarowymi okrążeniami, **włączone normalne zużycie paliwa i opon**, 2 rozgrzewkowe + 8–10 pomiarowych. Importuj oba CSV; sprawdź Fuel, Tyre, Driving, Electronics, Data Quality i Race Analysis. Na koniec można przejechać **Monzę przez 2–3 okrążenia** jako niezależny test wykrywania toru i jakości metadanych. Prześlij pliki i zrzuty.
+
+**Status weryfikacji:** składnia JavaScript, podstawowe testy syntetyczne wykresów i hamowań przeszły. Odczyty nowych pól sprawdzono względem struktury ACC Pack=4, ale **nie przetestowano jeszcze nowej wersji w uruchomionym ACC ani na wszystkich konfiguracjach**. Ostateczne zamknięcie 0.2.x dopiero po teście użytkownika.
 
 ### Co zmieniono w 0.2.14
 
@@ -172,11 +188,11 @@ Powstają dwa pliki dla każdej sesji (gdy rejestrator uruchomiono tylko raz):
 - Nie publikuje danych w internecie. Import pliku do Apex AI odbywa się lokalnie w Twojej przeglądarce.
 - Sektory od wersji 0.2.1 są **przybliżonymi czasami** wyliczonymi z momentów zmiany sektora. W starszych sesjach oznaczono je `estimated_5hz` lub `estimated_20hz`, a od 0.2.6 — `estimated_50hz` (częstotliwość docelowa). Jeśli nie udało się zaobserwować pełnego okrążenia, czasy sektorów pozostają puste. **Nie są to oficjalne czasy sektorów ACC.**
 - Integracja była testowana w ACC, ale wymaga dalszych testów stabilności i zgodności na różnych konfiguracjach.
-- Zarejestrowane temperatury **nie oznaczają zmierzonego zużycia opon**. Nie należy diagnozować degradacji wyłącznie z temperatur.
+- Zarejestrowane temperatury **nie oznaczają zmierzonego zużycia opon**. Pola `tyre_wear_*_raw` w 0.2.15 mają status **eksperymentalnego odczytu bez zweryfikowanej skali i dynamiki**; nie należy interpretować ich jako procentu bieżnika.
 - Dane wpisane jako `fuel` traktujemy roboczo jako litry, ale należy porównać wskazanie z grą podczas pierwszego testu.
-- Pliki `*_samples.csv` można importować do dashboardu. Dostępne są wykresy prędkości, gazu i hamulca, ale zaawansowana analiza i porównywanie dwóch okrążeń nie są jeszcze dostępne. Dane pozostają lokalnie w przeglądarce.
+- Pliki `*_samples.csv` można importować do dashboardu. Dostępne są wykresy prędkości, gazu, hamulca, porównania okrążeń i nowe zestawienia stintu. W 0.2.x nie ma jeszcze aplikacji desktopowej ani modelu AI. Dane pozostają lokalnie w przeglądarce.
 - Uruchamiaj wyłącznie kod, którego źródło znasz; plik CMD uruchamia dołączony skrypt PowerShell w procesie z polityką `Bypass`, bez trwałej zmiany ustawień systemu.
 
 ### Źródła formatu Shared Memory
 
-ACC udostępnia `Local\acpmf_graphics` oraz `Local\acpmf_physics`; kolejność pól do odczytu sprawdzono w strukturach `Graphics.cs` i `Physics.cs` projektu [AssettoCorsaCompetizioneSharedMemory](https://github.com/MorGuux/AssettoCorsaCompetizioneSharedMemory) oraz w [CppAccSharedMemory](https://github.com/SolusDev-sys/CppAccSharedMemory).
+ACC udostępnia `Local\acpmf_graphics` oraz `Local\acpmf_physics`; kolejność pól / offsety Pack=4 sprawdzono w [ACCsharedmemory/Physics.cs](https://github.com/heikowulf/ACCsharedmemory/blob/master/Physics.cs), [accshm/FIELDS.md](https://github.com/ebnerdm/accshm/blob/main/FIELDS.md), [PyAccSharedMemory](https://github.com/rrennoir/PyAccSharedMemory) i [CppAccSharedMemory](https://github.com/SolusDev-sys/CppAccSharedMemory).
