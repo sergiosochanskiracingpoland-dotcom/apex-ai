@@ -4,12 +4,18 @@
 <style>
 :root{color-scheme:dark;--bg:#090e18;--panel:#131d2c;--line:#263447;--txt:#eaf2ff;--muted:#91a4ba;--accent:#53d9bd}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px system-ui,Segoe UI,sans-serif}header{padding:22px 5%;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center}h1{margin:0;font-size:24px;letter-spacing:2px}h2{font-size:19px;margin:0 0 15px}h3{margin:0 0 10px}.sub,small{color:var(--muted)}main{max-width:1200px;margin:auto;padding:24px 18px}nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}button,.upload{background:#1c2b40;color:var(--txt);border:1px solid #35506a;border-radius:10px;padding:10px 15px;cursor:pointer;font:inherit}button:hover,.upload:hover{border-color:var(--accent)}button.active,.primary{background:#155c55;border-color:#36a895}input,select{background:#0d1624;color:var(--txt);border:1px solid #3c5168;border-radius:8px;padding:10px;max-width:100%}.upload input{display:none}.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat{background:#101b29;border-radius:12px;padding:17px}.stat b{font-size:24px;display:block;margin-top:8px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.hidden{display:none!important}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px}th{color:var(--muted)}.scroll{overflow-x:auto}svg{width:100%;height:240px}#speedPlot,#pedalPlot{height:300px}.comparePlot{height:250px}.compareControls input[type=range]{width:155px;max-width:35vw;accent-color:var(--accent)}.compareReadout td,.compareReadout th{font-variant-numeric:tabular-nums}.compareReadout{margin:0 0 20px}.racePlot{height:260px}.racePriority li{margin:10px 0;padding-bottom:10px;border-bottom:1px solid var(--line)}.racePriority button,.raceZones button{padding:6px 9px;margin-left:8px;font-size:13px}.raceLegend{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0}.raceZones td{white-space:nowrap}.raceHint{margin:12px 0;color:var(--muted)}ul{padding-left:20px;line-height:1.8}.chat{height:280px;overflow:auto;background:#0d1624;border-radius:12px;padding:12px;margin:12px 0}.bubble{padding:10px 12px;border-radius:12px;background:#20334b;margin:8px 0;max-width:90%}.bubble.me{background:#155c55;margin-left:auto}.chatbar{display:flex;gap:8px}.chatbar input{flex:1}.pill{color:var(--accent)}@media(max-width:700px){.stats,.grid{grid-template-columns:1fr 1fr}.grid{display:block}.stats{gap:8px}.stat b{font-size:19px}header{display:block}} 
+.engLegend{display:flex;gap:15px;flex-wrap:wrap;margin:6px 0 14px}.engPlot{height:240px}.engGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.engValue{font-size:21px;font-weight:700}.engNotice{padding:7px 0;color:var(--muted)}@media(max-width:700px){.engGrid{grid-template-columns:1fr}}
 </style></head><body>
-<header><div><h1>APEX <span style="color:var(--accent)">AI</span></h1><div class="sub">RACE ENGINEER • ACC ALPHA 0.2.14</div></div><span class="pill">● Local prototype</span></header>
+<header><div><h1>APEX <span style="color:var(--accent)">AI</span></h1><div class="sub">RACE ENGINEER • ACC ALPHA 0.2.15</div></div><span class="pill">● Local prototype</span></header>
 <main><div class="controls"><button class="primary" id="demo">Załaduj sesję demo</button><label class="upload">Importuj okrążenia <input id="file" type="file" accept=".csv,text/csv"></label><label class="upload">Importuj telemetrię <input id="samplesFile" type="file" accept=".csv,text/csv"></label><button id="save">Zapisz sesję</button><small id="samplesStatus" role="status">Telemetria: nie wczytano pliku _samples.csv.</small><small id="status">Dane demonstracyjne są fikcyjne. CSV: lap,time,s1,s2,s3,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr</small></div>
 <nav id="nav"><button data-tab="dashboard" class="active">Dashboard</button><button data-tab="stint">Analiza stintu</button><button data-tab="history">Historia</button><button data-tab="setups">Setupy</button><button data-tab="coach">Inżynier AI</button></nav>
 <section id="dashboard"><div class="stats" id="stats"></div><div class="grid"><div class="card"><h2>Tempo okrążeń</h2><svg id="plot" viewBox="0 0 600 240" role="img" aria-label="Wykres czasów okrążeń"></svg></div><div class="card"><h2>Priorytety treningowe</h2><ul id="tips"></ul></div></div><div class="card"><h2>Sektory według okrążeń</h2><svg id="sectorPlot" viewBox="0 0 600 260" role="img" aria-label="Wykres czasów sektorów"></svg><small>Sektory są szacowane z przejść między sektorami, a nie pobierane jako oficjalne splity ACC.</small></div><div class="card"><h2>Telemetria z ACC</h2><p id="telemetrySummary">Nie wczytano pliku _samples.csv.</p><small>Dane są wczytywane lokalnie w przeglądarce. Wykresy prędkości, gazu i hamulca znajdują się poniżej.</small></div><div class="card"><h2>Prędkość na okrążeniu</h2><div class="controls"><label for="speedLap">Okrążenie:</label><select id="speedLap" disabled aria-label="Wybierz okrążenie do wykresu prędkości"></select><small id="speedInfo" role="status">Zaimportuj plik _samples.csv, aby zobaczyć wykres.</small></div><svg id="speedPlot" viewBox="0 0 720 280" role="img" aria-label="Prędkość w km/h względem postępu okrążenia"></svg><small>Oś X: postęp okrążenia (0–100%). Oś Y: prędkość (km/h). Wykres poglądowy; pełne dane pozostają w pamięci przeglądarki.</small></div><div class="card"><h2>Gaz i hamulec na okrążeniu</h2><div class="controls"><label for="pedalLap">Okrążenie:</label><select id="pedalLap" disabled aria-label="Wybierz okrążenie do wykresu gazu i hamulca"></select><small id="pedalInfo" role="status">Zaimportuj plik _samples.csv, aby zobaczyć wykres.</small></div><div class="controls"><span style="color:#53d9bd">● Gaz</span><span style="color:#ff956b">● Hamulec</span></div><svg id="pedalPlot" viewBox="0 0 720 280" role="img" aria-label="Użycie gazu i hamulca w procentach względem postępu okrążenia"></svg><small>Oś X: postęp okrążenia (0–100%). Oś Y: wciśnięcie pedału (0–100%). Oba wykresy pokazują to samo wybrane okrążenie, bez wygładzania danych.</small></div><div class="card" id="comparisonCard"><h2>Porównanie dwóch okrążeń</h2><div class="controls"><label for="compareA">Okrążenie A:</label><select id="compareA" disabled></select><label for="compareB">Okrążenie B:</label><select id="compareB" disabled></select></div><p id="compareInfo" role="status">Zaimportuj minimum dwa pełne okrążenia.</p><div class="controls compareControls"><label for="compareStart">Od:</label><input id="compareStart" type="range" min="0" max="95" step="5" value="0" disabled><label for="compareEnd">Do:</label><input id="compareEnd" type="range" min="5" max="100" step="5" value="100" disabled><strong id="compareRangeLabel">0–100% toru</strong><button id="compareReset" disabled>Całe okrążenie</button></div><div class="controls compareControls"><label for="compareCursor">Odczyt w punkcie:</label><input id="compareCursor" type="range" min="0" max="100" step="0.5" value="50" disabled><strong id="compareCursorLabel">50,0% toru</strong></div><div class="scroll compareReadout"><table aria-label="Dokładne wartości telemetrii w wybranym punkcie"><thead><tr><th>Parametr</th><th>Okrążenie A</th><th>Okrążenie B</th><th>Różnica B − A</th></tr></thead><tbody id="compareReadout"></tbody></table></div><div class="controls"><span style="color:#53d9bd">● Okrążenie A</span><span style="color:#ffba69">● Okrążenie B</span></div><h3>Prędkość (km/h)</h3><svg class="comparePlot" id="compareSpeed" viewBox="0 0 720 260"></svg><h3>Gaz (%)</h3><svg class="comparePlot" id="compareGas" viewBox="0 0 720 260"></svg><h3>Hamulec (%)</h3><svg class="comparePlot" id="compareBrake" viewBox="0 0 720 260"></svg><small>Oś X: postęp okrążenia (0–100%). Kolory oznaczają okrążenia. Suwaki ograniczają widoczny fragment trasy i wybierają punkt odczytu. Interpolacja liniowa bez ekstrapolacji; różnica prędkości w punkcie nie jest równoznaczna ze stratą czasu.</small></div><div class="card" id="raceAnalysis"><h2>Race Analysis Engine v1 <small>• analiza regułowa</small></h2><p id="raceStatus" role="status">Wczytaj telemetrię dwóch pełnych okrążeń.</p><h3>Mapa zmian czasu na fragmentach toru</h3><div class="raceLegend"><span style="color:#ffba69">■ B wolniejsze od A</span><span style="color:#53d9bd">■ B szybsze od A</span></div><svg id="raceDeltaPlot" class="racePlot" viewBox="0 0 760 260" role="img" aria-label="Różnice czasów na odcinkach po 5 procent długości toru"></svg><p class="raceHint" id="raceDeltaInfo">Wyniki są obliczane z czasu próbek UTC na tych samych fragmentach toru.</p><h3>Trzy priorytety analizy</h3><ul class="racePriority" id="racePriorities"></ul><h3>Wykryte strefy hamowania</h3><p class="raceHint" id="raceZoneInfo">Strefy są wykrywane z nacisku hamulca, bez przypisywania nazw zakrętów.</p><div class="scroll raceZones"><table><thead><tr><th>Strefa</th><th>Hamowanie A / B</th><th>Prędkość min. A / B</th><th>Powrót na gaz A / B</th><th>Wykres</th></tr></thead><tbody id="raceZoneBody"></tbody></table></div><small>Wyniki są szacunkowe i zależą od jakości próbek. Dodatnia różnica czasu oznacza, że okrążenie B było wolniejsze na danym odcinku. Porównanie nie identyfikuje automatycznie przyczyn ani konkretnych zakrętów. Odcinki bez wiarygodnych próbek są pomijane.</small></div><div class="card"><h2>Podsumowanie sesji</h2><p id="summary"></p></div></section>
-<section id="stint" class="hidden"><div class="card"><h2>Analiza stintu</h2><p id="stintSummary"></p><div class="scroll"><table><thead><tr><th>Lap</th><th>Czas</th><th>S1</th><th>S2</th><th>S3</th><th>Paliwo (L)</th><th>Śr. temp. opon (°C)</th></tr></thead><tbody id="laps"></tbody></table></div></div></section>
+<section id="stint" class="hidden"><div class="card"><h2>Analiza stintu</h2><p id="stintSummary"></p><div class="scroll"><table><thead><tr><th>Lap</th><th>Czas</th><th>S1</th><th>S2</th><th>S3</th><th>Paliwo (L)</th><th>Śr. temp. opon (°C)</th></tr></thead><tbody id="laps"></tbody></table></div></div>
+<div class="card" id="engFuelCard"><h2>Fuel Analysis • spalanie</h2><p id="engFuelSummary" role="status">Wczytaj pasujące pliki CSV.</p><svg class="engPlot" id="engFuelPlot" viewBox="0 0 720 240" role="img" aria-label="Paliwo po kolejnych okrążeniach"></svg><small>Pomiar poziomu paliwa na końcu okrążenia. Tankowania i anomalie nie służą do wyliczania spalania.</small></div>
+<div class="card" id="engTyreCard"><h2>Tyre Analysis • temperatury i ciśnienia</h2><p id="engTyreSummary" role="status">Wczytaj telemetrię.</p><div class="engLegend"><span style="color:#53d9bd">● FL</span><span style="color:#ffba69">● FR</span><span style="color:#9ba9ff">● RL</span><span style="color:#f39acc">● RR</span></div><h3>Temperatura rdzenia opon (°C)</h3><svg class="engPlot" id="engTyrePlot" viewBox="0 0 720 240" role="img" aria-label="Temperatury opon na kolejnych okrążeniach"></svg><h3>Ciśnienie opon (PSI)</h3><svg class="engPlot" id="engPressurePlot" viewBox="0 0 720 240" role="img" aria-label="Ciśnienie opon na kolejnych okrążeniach"></svg><p class="engNotice" id="engWearStatus">Rzeczywiste zużycie bieżnika wymaga weryfikacji w ACC.</p></div>
+<div class="engGrid"><div class="card"><h2>Driving Dynamics • prowadzenie</h2><p id="engDriveSummary">Brak nowych danych.</p><svg class="engPlot" id="engSteerPlot" viewBox="0 0 720 240" role="img" aria-label="Średnia wartość bezwzględna skrętu na kolejnych okrążeniach"></svg><small>Kąt skrętu zapisujemy jako surowy sygnał wejściowy; nie przeliczamy go na stopnie kierownicy. Przeciążenia G to wartości orientacyjne z pamięci ACC.</small></div><div class="card"><h2>Electronics • TC / ABS</h2><p id="engAssistSummary">Brak nowych danych.</p><small>Odsetek próbek w ruchu z aktywną interwencją, nie częstotliwość poszczególnych uruchomień. Zera nie oznaczają automatycznie braku układu w samochodzie.</small></div></div>
+<div class="card"><h2>Data Quality • kontrola telemetrii</h2><p id="engQualitySummary" role="status">Wczytaj telemetrię, aby sprawdzić jakość danych.</p><small>Nie oznaczamy automatycznie okrążenia jako oficjalnie ważnego. Wykluczamy z porównań okrążenia niepełne, z pit stopem lub dużymi lukami. Stare pliki CSV nadal działają, ale nie mają nowych kolumn.</small></div>
+</section>
 <section id="history" class="hidden"><div class="card"><h2>Historia sesji</h2><p class="muted">Sesje zapisywane są tylko w tej przeglądarce (localStorage).</p><div id="hist"></div></div></section>
 <section id="setups" class="hidden"><div class="card"><h2>Porównanie setupów</h2><p class="muted">Wpisz nazwę setupu i zapisz aktualną sesję, następnie porównaj kolejne.</p><input id="setupName" placeholder="Np. Spa race v1" maxlength="80"><button id="saveSetup">Zapisz wynik setupu</button><div id="setupList"></div></div></section>
 <section id="coach" class="hidden"><div class="card"><h2>AI Race Engineer <small>• wersja regułowa, bez LLM</small></h2><p class="muted">Zapytaj o tempo, stabilność, sektory, paliwo lub opony. Odpowiedzi bazują na dostępnych danych.</p><div class="chat" id="chat"><div class="bubble">Cześć. Załaduj sesję i zapytaj o jej wyniki. Nie zgaduję brakujących danych.</div></div><div class="chatbar"><input id="question" placeholder="Np. Dlaczego tracę tempo?"><button id="ask">Wyślij</button><button id="speak" title="Odczytaj ostatnią odpowiedź">🔊</button></div><small>Odczyt głosowy korzysta z syntezatora przeglądarki; rozmowa mikrofonowa nie jest jeszcze dostępna.</small></div></section>
@@ -91,7 +97,13 @@ function completeSpeedLaps(samples){
       if(all[i].lap_progress<all[i-1].lap_progress-0.5)cut=i;
     }
     const points=all.slice(cut);
-    if(points.length<100)continue;
+    if(points.length<100||points.some(p=>p.in_pit>=1))continue;
+    let broken=false;
+    for(let i=1;i<points.length;i++){
+      const dt=points[i].timestamp_ms-points[i-1].timestamp_ms;
+      if(!Number.isFinite(dt)||dt<=0||dt>600){broken=true;break;}
+    }
+    if(broken)continue;
     let low=1,high=0;
     for(const s of points){
       if(s.lap_progress<low)low=s.lap_progress;
@@ -360,7 +372,7 @@ function brakingZones(points){
         else if(fullStart!==null){longestFullMs=Math.max(longestFullMs,p.timestamp_ms-fullStart);fullStart=null;}
       }
       if(fullStart!==null)longestFullMs=Math.max(longestFullMs,ordered[first].timestamp_ms-fullStart);
-      if(gapMs>0&&gapMs<=1600&&gapProgress>=0&&gapProgress<=0.016&&longestFullMs<650){
+      if(gapMs>0&&gapMs<=900&&gapProgress>=0&&gapProgress<=0.007&&longestFullMs<400){
         previous.push(...g);continue;
       }
     }
@@ -396,12 +408,17 @@ function brakingZones(points){
   return zones.slice(0,24);
 }
 function pairedZones(a,b){
+  // Only match comparable brake episodes. A long B episode must not be
+  // paired to a short A episode that covers only half a corner complex.
   const zonesA=brakingZones(a.points),zonesB=brakingZones(b.points),used=new Set();
   return zonesA.map((zone,i)=>{
-    let closest=null,idx=-1,bestDistance=Infinity;
+    let closest=null,idx=-1,bestScore=Infinity;
     zonesB.forEach((candidate,j)=>{
-      const d=Math.abs(candidate.start-zone.start);
-      if(!used.has(j)&&d<=3.5&&d<bestDistance){closest=candidate;idx=j;bestDistance=d;}
+      const begin=Math.abs(candidate.start-zone.start),end=Math.abs(candidate.end-zone.end);
+      const spanA=Math.max(0.1,zone.end-zone.start),spanB=Math.max(0.1,candidate.end-candidate.start);
+      if(used.has(j)||begin>1.8||end>1.35||Math.max(spanA,spanB)/Math.min(spanA,spanB)>2.2)return;
+      const score=begin+end*0.9;
+      if(score<bestScore){closest=candidate;idx=j;bestScore=score;}
     });
     if(idx>=0)used.add(idx);
     return {number:i+1,a:zone,b:closest};
@@ -449,7 +466,7 @@ function showRaceAnalysis(a,b){
   const p=result.priorities;
   if(!p.length)priority.innerHTML='<li>Brak istotnych różnic powyżej 0,025 s na pojedynczych odcinkach lub brak danych. Nie wyznaczam priorytetów na siłę.</li>';
   else priority.innerHTML=p.map((s,i)=>'<li><strong>'+(i+1)+'. Odcinek '+s.start+'–'+s.end+'% toru:</strong> '+(s.delta>=0?'B wolniejsze o ':'B szybsze o ')+Math.abs(s.delta).toFixed(3)+' s od A. '+(s.delta>=0?'Sprawdź hamowanie, prędkość minimalną i moment powrotu na gaz.':'Sprawdź, co zmieniło się w hamowaniu i przyspieszaniu względem A.')+' <button type="button" data-race-start="'+s.start+'" data-race-end="'+s.end+'">Pokaż na wykresie</button></li>').join('');
-  zoneInfo.textContent='Strefy hamowania A: próg 18%, minimum 0,22 s, szczyt 45%. Bliskie dohamowania bez długiego powrotu na pełny gaz są łączone w jedną strefę. Minimum prędkości liczymy tylko do wyjścia z tej strefy, bez pobierania minimum z następnego hamowania. Strefy B dopasowano według postępu trasy; nie są to oficjalne granice zakrętów.';
+  zoneInfo.textContent='Strefy hamowania A: próg 18%, minimum 0,22 s, szczyt 45%. Krótkie dohamowania są łączone tylko przy bardzo małej przerwie. Niedopasowane lub złożone strefy B pokazujemy jako brak porównania, zamiast porównywać różne zakręty. Minimum prędkości liczymy tylko do wyjścia z tej strefy, bez pobierania minimum z następnego hamowania. Strefy B dopasowano według postępu trasy; nie są to oficjalne granice zakrętów.';
   const val=(n,suffix,dec=1)=>Number.isFinite(n)?n.toFixed(dec)+suffix:'—';
   zoneBody.innerHTML=result.zones.length?result.zones.map(z=>{
     const start=Math.max(0,Math.floor((z.a.start-3)/5)*5),end=Math.min(100,Math.ceil((Math.max(z.a.end,z.b?z.b.end:z.a.end)+6)/5)*5);
@@ -476,6 +493,7 @@ function showTelemetry(){
     $('telemetrySummary').textContent='Nie wczytano pliku _samples.csv.';
     showSpeedChart();
     showCompare();
+    showEngineering();
     return;
   }
   const label=count.toLocaleString('pl-PL')+' próbek';
@@ -486,6 +504,7 @@ function showTelemetry(){
   $('telemetrySummary').textContent='Wczytano '+label+' z '+samplesFileName+'. Dostępne: czas UTC, postęp okrążenia, prędkość, gaz, hamulec, bieg, RPM, paliwo, temperatury i ciśnienia opon.'+(sampling?' Efektywna częstotliwość w ruchu: '+sampling.hz.toFixed(1).replace('.',',')+' Hz (średnia z '+sampling.count.toLocaleString('pl-PL')+' odstępów próbek, pominięto przerwy >250 ms; cel 50 Hz). Najdłuższy uwzględniony odstęp: '+Math.round(sampling.maxGapMs)+' ms'+(sampling.slowGaps?', odstępów >100 ms: '+sampling.slowGaps:'')+'.':' Nie można jeszcze wiarygodnie oszacować rzeczywistej częstotliwości próbkowania.')+(paired?' Pliki okrążeń i telemetrii pochodzą z tej samej sesji.':' Aby powiązać dane z czasami okrążeń, zaimportuj odpowiadający plik _laps.csv.');
   showSpeedChart();
   showCompare();
+  showEngineering();
 }
 function parseSamplesCSV(text){
   const lines=text.replace(/^\uFEFF/,'').trim().replace(/\r/g,'').split('\n');
@@ -496,7 +515,7 @@ function parseSamplesCSV(text){
   const required=['timestamp_utc','completed_laps','sector_index','lap_progress','speed_kmh','gas','brake','gear','rpm','fuel'];
   const missing=required.filter(k=>!keys.includes(k));
   if(missing.length)throw Error('To nie jest prawidłowy plik _samples.csv. Brak kolumn: '+missing.join(', '));
-  const numeric=new Set(['completed_laps','sector_index','lap_progress','speed_kmh','gas','brake','gear','rpm','fuel','tyre_fl','tyre_fr','tyre_rl','tyre_rr','pressure_fl','pressure_fr','pressure_rl','pressure_rr']);
+  const numeric=new Set(['completed_laps','sector_index','lap_progress','speed_kmh','gas','brake','gear','rpm','fuel','tyre_fl','tyre_fr','tyre_rl','tyre_rr','pressure_fl','pressure_fr','pressure_rl','pressure_rr','steer_input','g_x','g_y','g_z','tc_action','abs_action','tyre_wear_fl_raw','tyre_wear_fr_raw','tyre_wear_rl_raw','tyre_wear_rr_raw','in_pit','physics_packet_id']);
   if(lines.length>500000)throw Error('Plik ma ponad 500 000 próbek. Wczytaj krótszą sesję.');
   const parsed=[];
   for(let i=0;i<lines.length;i++){
@@ -524,6 +543,91 @@ function parseSamplesCSV(text){
   if(!parsed.length)throw Error('Brak próbek telemetrii.');
   return parsed;
 }
+
+const ENG_WHEELS=['fl','fr','rl','rr'],ENG_COLORS=['#53d9bd','#ffba69','#9ba9ff','#f39acc'];
+const engNum=(x,n=2)=>Number.isFinite(x)?x.toFixed(n):'—';
+function engMedian(input){const v=input.filter(Number.isFinite).slice().sort((a,b)=>a-b);return v.length?v[Math.floor(v.length/2)]*0.5+v[Math.floor((v.length-1)/2)]*0.5:NaN;}
+function engFieldMean(points,key,low,high){
+  const arr=points.map(p=>p[key]).filter(v=>Number.isFinite(v)&&v>=low&&v<=high);
+  return arr.length>=Math.max(15,points.length*0.5)?avg(arr):NaN;
+}
+function engTrendSvg(series,unit){
+  const n=Math.max(0,...series.map(s=>s.values.length));
+  const vals=series.flatMap(s=>s.values).filter(Number.isFinite);
+  if(n<2||vals.length<2)return '<text x="45" y="125" fill="#91a4ba">Potrzebne co najmniej dwa okrążenia z poprawnymi danymi.</text>';
+  let min=Math.min(...vals),max=Math.max(...vals),pad=Math.max((max-min)*0.16,unit==='L'?0.15:unit==='PSI'?0.15:0.05);
+  min-=pad;max+=pad;
+  const x=i=>54+i*620/Math.max(1,n-1),y=v=>202-(v-min)/(max-min)*156;
+  let out='<line x1="50" y1="202" x2="690" y2="202" stroke="#53677e"/><line x1="50" y1="35" x2="50" y2="202" stroke="#53677e"/>';
+  out+='<text x="6" y="18" fill="#91a4ba" font-size="12">'+unit+'</text>';
+  for(let i=0;i<=3;i++){
+    const v=min+(max-min)*i/3,yy=y(v);
+    out+='<line x1="50" y1="'+yy.toFixed(1)+'" x2="690" y2="'+yy.toFixed(1)+'" stroke="#263447"/><text x="5" y="'+(yy-4).toFixed(1)+'" fill="#91a4ba" font-size="11">'+v.toFixed(1)+'</text>';
+  }
+  for(const one of series){
+    let current=[];const flush=()=>{if(current.length>1)out+='<polyline points="'+current.join(' ')+'" stroke="'+one.color+'" stroke-width="2.6" fill="none"/>';current=[];};
+    one.values.forEach((v,i)=>{if(!Number.isFinite(v)){flush();return;}current.push(x(i).toFixed(1)+','+y(v).toFixed(1));});
+    flush();
+    one.values.forEach((v,i)=>{if(Number.isFinite(v))out+='<circle cx="'+x(i).toFixed(1)+'" cy="'+y(v).toFixed(1)+'" r="2.5" fill="'+one.color+'"><title>'+one.label+', okrążenie '+(i+1)+': '+v.toFixed(3)+' '+unit+'</title></circle>';});
+  }
+  out+='<text x="50" y="229" fill="#91a4ba" font-size="12">Początek stintu</text><text x="592" y="229" fill="#91a4ba" font-size="12">Koniec stintu</text>';
+  return out;
+}
+function engMetrics(){
+  const data=telemetrySamples, moving=data.filter(p=>p.speed_kmh>30), laps=speedLaps;
+  const lapRows=rows.filter(r=>Number.isFinite(r.fuel)&&r.fuel>=0&&r.fuel<=200&&Number.isFinite(r.lap));
+  const drops=[];
+  for(let i=1;i<lapRows.length;i++){
+    const drop=lapRows[i-1].fuel-lapRows[i].fuel;
+    if(lapRows[i].lap===lapRows[i-1].lap+1&&drop>0.05&&drop<15)drops.push(drop);
+  }
+  const fuelBurn=engMedian(drops),fuelSeries=lapRows.map(r=>r.fuel);
+  const tyreLaps=laps.map(l=>({lap:l.lap, temp:ENG_WHEELS.map(w=>engFieldMean(l.points,'tyre_'+w,20,160)),pressure:ENG_WHEELS.map(w=>engFieldMean(l.points,'pressure_'+w,10,45)),
+    steer:engFieldMean(l.points,'steer_input',-1.5,1.5),steerAbs:engFieldMean(l.points.map(p=>({...p,steer_abs:Math.abs(p.steer_input)})),'steer_abs',0,1.5)}));
+  const rpm=moving.map(p=>p.rpm).filter(v=>Number.isFinite(v)&&v>=0&&v<=15000);
+  const gear=moving.map(p=>p.gear).filter(v=>Number.isInteger(v)&&v>=2&&v<=12);
+  const planar=moving.map(p=>Number.isFinite(p.g_x)&&Number.isFinite(p.g_z)?Math.hypot(p.g_x,p.g_z):NaN).filter(v=>Number.isFinite(v)&&v<8);
+  const steer=moving.map(p=>p.steer_input).filter(v=>Number.isFinite(v)&&Math.abs(v)<=1.5);
+  const assist=(field,pedal)=>{const relevant=moving.filter(p=>Number.isFinite(p[field])&&p[field]>=0&&p[field]<=1.01&&p[pedal]>=0.1);
+    return relevant.length>=100?{n:relevant.length,active:relevant.filter(p=>p[field]>0.03).length,rate:100*relevant.filter(p=>p[field]>0.03).length/relevant.length}:null;};
+  let gaps=0,badTime=0,repeatPhysics=0,packetComparisons=0,pitSamples=0;
+  for(let i=0;i<data.length;i++){
+    if(data[i].in_pit===1)pitSamples++;
+    if(i===0)continue;
+    const a=data[i-1],b=data[i],dt=b.timestamp_ms-a.timestamp_ms;
+    if(!Number.isFinite(dt)||dt<=0)badTime++;
+    else if(a.completed_laps===b.completed_laps&&dt>250)gaps++;
+    if(Number.isFinite(a.physics_packet_id)&&Number.isFinite(b.physics_packet_id)&&a.completed_laps===b.completed_laps){
+      packetComparisons++;if(a.physics_packet_id===b.physics_packet_id)repeatPhysics++;
+    }
+  }
+  return {fuelSeries,fuelBurn,drops,tyreLaps,rpmMax:rpm.length?Math.max(...rpm):NaN,
+    gearMax:gear.length?Math.max(...gear)-1:NaN,planarMax:planar.length?Math.max(...planar):NaN,
+    steerAbsMax:steer.length?Math.max(...steer.map(Math.abs)):NaN,tc:assist('tc_action','gas'),abs:assist('abs_action','brake'),
+    gaps,badTime,repeatPhysics,packetComparisons,pitSamples,movingCount:moving.length};
+}
+function showEngineering(){
+  const has=telemetrySamples.length>0,info=engMetrics();
+  const fuelAvailable=info.fuelSeries.length>=2;
+  $('engFuelSummary').textContent=!fuelAvailable?'Brak dwóch kolejnych pomiarów paliwa z _laps.csv.':Number.isFinite(info.fuelBurn)?
+    'Szacunkowe spalanie: '+engNum(info.fuelBurn)+' L/okr. (mediana '+info.drops.length+' odczytów między kolejnymi okrążeniami). Ostatni zapis: '+engNum(info.fuelSeries[info.fuelSeries.length-1])+' L.':
+    'Nie wykryto wiarygodnego spadku paliwa. Możliwe wyłączone zużycie w ACC lub zbyt krótki stint. Nie obliczam fałszywego spalania.';
+  $('engFuelPlot').innerHTML=engTrendSvg([{label:'Paliwo',color:ENG_COLORS[0],values:info.fuelSeries}],'L');
+  const tyre=info.tyreLaps, validTyre=tyre.flatMap(l=>l.temp).filter(Number.isFinite);
+  $('engTyreSummary').textContent=validTyre.length?'Uśrednione odczyty z '+tyre.length+' pełnych okrążeń. Pokazujemy temperaturę rdzenia i ciśnienie, nie procent zużycia.':'Brak danych o temperaturze rdzenia / ciśnieniu na pełnych okrążeniach.';
+  $('engTyrePlot').innerHTML=engTrendSvg(ENG_WHEELS.map((w,i)=>({label:w.toUpperCase(),color:ENG_COLORS[i],values:tyre.map(l=>l.temp[i])})),'°C');
+  $('engPressurePlot').innerHTML=engTrendSvg(ENG_WHEELS.map((w,i)=>({label:w.toUpperCase(),color:ENG_COLORS[i],values:tyre.map(l=>l.pressure[i])})),'PSI');
+  const wearRead=telemetrySamples.some(p=>Number.isFinite(p.tyre_wear_fl_raw));
+  $('engWearStatus').textContent=wearRead?'ACC: zapisano także surowe pola tyreWear (diagnostyka). Ich skala i aktualizacja w ACC nie są zweryfikowane, dlatego NIE podajemy procentu zużycia bieżnika.':'Plik nie zawiera surowych pól tyreWear. Zużycie bieżnika pozostaje niezweryfikowane.';
+  const hasDrive=Number.isFinite(info.rpmMax)||Number.isFinite(info.steerAbsMax);
+  $('engDriveSummary').textContent=hasDrive?'Maksymalne RPM: '+engNum(info.rpmMax,0)+'. Najwyższy bieg: '+engNum(info.gearMax,0)+'. Maks. |sterowanie|: '+engNum(info.steerAbsMax,3)+' (surowa skala). Maks. poziome G (X/Z): '+engNum(info.planarMax,2)+' — orientacyjnie.':'Nowe pola skrętu / G nie są jeszcze dostępne. Zainstaluj rejestrator 0.2.15 i nagraj nową sesję.';
+  $('engSteerPlot').innerHTML=engTrendSvg([{label:'Średni |ster|',color:ENG_COLORS[2],values:tyre.map(l=>l.steerAbs)}],'|skręt|');
+  const assistText=(a,name)=>a?name+': '+engNum(a.rate,1)+'% próbek z interwencją ('+a.active+'/'+a.n+' próbek przy odpowiednim pedale).':name+': brak wystarczających poprawnych pomiarów.';
+  $('engAssistSummary').textContent=has?assistText(info.tc,'TC')+' '+assistText(info.abs,'ABS'):'Brak próbek. Nowe pola TC/ABS pojawią się po jeździe z rejestratorem 0.2.15.';
+  const packet=info.packetComparisons?'Powtórzone pakiety fizyki: '+info.repeatPhysics+' / '+info.packetComparisons+' ('+engNum(100*info.repeatPhysics/info.packetComparisons,1)+'%).':'Identyfikatory pakietów fizyki: niedostępne w starym CSV.';
+  $('engQualitySummary').textContent=has?'Próbki: '+telemetrySamples.length.toLocaleString('pl-PL')+'. Okrążenia pełne, dopuszczone do porównań: '+speedLaps.length+'. Odstępy >250 ms wewnątrz okrążenia: '+info.gaps+'. Znaczniki czasu niepoprawne/cofnięte: '+info.badTime+'. Próbki w pit lane: '+info.pitSamples+'. '+packet:'Nie wczytano telemetrii. Wczytaj _samples.csv i odpowiadający _laps.csv.';
+}
+
 function storage(k){try{return JSON.parse(localStorage.getItem(k)||'[]')}catch{return []}}function put(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function history(){let h=storage('apexSessions');$('hist').innerHTML=h.length?'<div class="scroll"><table><tr><th>Data</th><th>Okrążenia</th><th>Best</th><th>Średnie</th></tr>'+h.map(x=>'<tr><td>'+x.date+'</td><td>'+x.laps+'</td><td>'+x.best+'</td><td>'+x.mean+'</td></tr>').join('')+'</table></div>':'Brak zapisanych sesji.';let s=storage('apexSetups');$('setupList').innerHTML=s.length?'<div class="scroll"><table><tr><th>Setup</th><th>Best</th><th>Średnie</th><th>Odchylenie</th></tr>'+s.map(x=>'<tr><td>'+x.name.replace(/[&<>"]/g,'')+'</td><td>'+x.best+'</td><td>'+x.mean+'</td><td>'+x.sd+'</td></tr>').join('')+'</table></div>':'Brak zapisanych setupów.';}
 function answer(q){if(!rows.length)return 'Najpierw wczytaj dane sesji.';let a=getAnalysis(),s=q.toLowerCase();if(/paliw|fuel|spal/.test(s))return Number.isFinite(a.burn)?'Średnie zużycie wynosi około '+a.burn.toFixed(2)+' L/okr. To estymacja z zapisanych pomiarów, bez rezerwy strategicznej.':getAnalysis().fuelUnchanged?'W CSV nie widać mierzalnego spadku paliwa. Sprawdź, czy zużycie jest włączone.':'Nie mam wystarczających danych o paliwie.';if(/sektor|sector/.test(s))return 'Średnie czasy sektorów: '+a.sec.map((x,i)=>'S'+(i+1)+': '+(Number.isFinite(x)?x.toFixed(3)+' s':'brak danych')).join(', ')+'. Do wskazania konkretnego zakrętu potrzebna jest telemetria wysokiej częstotliwości.';if(/opon|temper|tyre|tire/.test(s)){let v=rows.flatMap(r=>['tyre_fl','tyre_fr','tyre_rl','tyre_rr'].map(k=>r[k]).filter(Number.isFinite));return v.length?'Średnia temperatura opon w próbkach: '+avg(v).toFixed(1)+' °C. Bez ciśnień, warunków i przebiegu nie diagnozuję degradacji.':'W danych nie ma temperatur opon ani ciśnień.'}if(/stabil|regular|błęd|blad|tempo|woln|popraw|trening/.test(s))return 'Najlepsze '+fmt(a.best)+', średnie '+fmt(a.mean)+', odchylenie '+a.spread.toFixed(2)+' s. '+(a.trend>.4?'Końcówka jest wolniejsza o '+a.trend.toFixed(2)+' s — sprawdź zmęczenie, opony i błędy.':'Tempo w końcówce nie pogorszyło się wyraźnie.')+' Nie można określić dokładnej przyczyny bez dodatkowych danych.';return 'Znam Twoje czasy, sektory i dostępne próbki paliwa/opon. Zapytaj o tempo, stabilność, sektory, paliwo lub opony. Nie mam jeszcze pełnego modelu językowego.';}
