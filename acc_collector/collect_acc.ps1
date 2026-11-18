@@ -1,4 +1,4 @@
-# Apex AI 0.2.14 - ACC telemetry collector for Windows 11
+# Apex AI 0.2.15 - ACC telemetry collector for Windows 11
 # Reads ACC shared memory locally. No admin rights, Python, cloud or API key required.
 # The lap CSV is compatible with the existing Apex AI website.
 $ErrorActionPreference = "Stop"
@@ -120,10 +120,10 @@ $latestTrackId = ""; $latestCarId = ""
 $trackId = ""; $carId = ""
 $nextInfoCheck = Get-Date
 
-Write-Host "APEX AI 0.2.14 | Rejestrator ACC" -ForegroundColor Cyan
+Write-Host "APEX AI 0.2.15 | Rejestrator ACC" -ForegroundColor Cyan
 Write-Host "Zapis danych: $folder"
 Write-Host "Uruchom ACC i wejdz na tor. Zatrzymanie: Ctrl+C."
-Write-Host "Pliki _laps.csv wgrasz do Apex AI; _samples.csv to surowe dane do przyszlej analizy."
+Write-Host "_laps.csv = czasy; _samples.csv = telemetria, opony, paliwo, sterowanie, TC/ABS i diagnostyka."
 Write-Host "Eksperymentalny cel: 50 Hz (co 20 ms). Rzeczywista czestotliwosc zobaczysz w dashboardzie po imporcie _samples.csv."
 if ($highResolutionTimerActive) {
     Write-Host "Timer Windows: tryb 1 ms aktywny." -ForegroundColor Green
@@ -201,14 +201,24 @@ try {
             }
 
             # Physics: these prefix offsets are fixed in the ACC SDK.
-            # fuel at 12; gear 16; RPM 20; speed 28;
-            # pressures at 88..100; core tyre temperatures at 152..164.
+            # ACC Physics / Pack=4: packet 0, fuel 12, gear 16, RPM 20,
+            # steering 24, speed 28, 3-axis accG 44/48/52,
+            # pressures 88..100, raw tyreWear 120..132,
+            # core tyre temperatures 152..164, TC action 204, ABS action 252.
+            # Raw tyreWear is diagnostic only; ACC may not expose useful wear.
             $gas = $p.ReadSingle(4)
             $brake = $p.ReadSingle(8)
             $fuel = $p.ReadSingle(12)
             $gear = $p.ReadInt32(16)
             $rpm = $p.ReadInt32(20)
             $speed = $p.ReadSingle(28)
+            $steerInput = $p.ReadSingle(24)
+            $accG = @($p.ReadSingle(44), $p.ReadSingle(48), $p.ReadSingle(52))
+            $tyreWearRaw = @($p.ReadSingle(120), $p.ReadSingle(124), $p.ReadSingle(128), $p.ReadSingle(132))
+            $tcAction = $p.ReadSingle(204)
+            $absAction = $p.ReadSingle(252)
+            $inPit = $g.ReadInt32(160)
+            $physicsPacketId = $p.ReadInt32(0)
             $tyres = @(
                 $p.ReadSingle(152), $p.ReadSingle(156),
                 $p.ReadSingle(160), $p.ReadSingle(164)
@@ -275,7 +285,7 @@ try {
                 $lapWriter.AutoFlush = $true
                 $sampleWriter.AutoFlush = $true
                 $lapWriter.WriteLine("lap,time,s1,s2,s3,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,sector_source,track,track_name,car_model,car_name")
-                $sampleWriter.WriteLine("timestamp_utc,completed_laps,sector_index,lap_progress,speed_kmh,gas,brake,gear,rpm,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,pressure_fl,pressure_fr,pressure_rl,pressure_rr")
+                $sampleWriter.WriteLine("timestamp_utc,completed_laps,sector_index,lap_progress,speed_kmh,gas,brake,gear,rpm,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,pressure_fl,pressure_fr,pressure_rl,pressure_rr,steer_input,g_x,g_y,g_z,tc_action,abs_action,tyre_wear_fl_raw,tyre_wear_fr_raw,tyre_wear_rl_raw,tyre_wear_rr_raw,in_pit,physics_packet_id")
                 $previousLap = $completed  # Never invent already completed laps.
                 $previousSector = $sector
                 $lapStartTime = $null; $boundaryTime = Get-Date
@@ -361,7 +371,12 @@ try {
                 (N $speed), (N $gas), (N $brake), "$gear", "$rpm", (N $fuel),
                 (N $tyres[0]), (N $tyres[1]), (N $tyres[2]), (N $tyres[3]),
                 (N $pressures[0]), (N $pressures[1]),
-                (N $pressures[2]), (N $pressures[3])
+                (N $pressures[2]), (N $pressures[3]),
+                (N $steerInput 5), (N $accG[0] 4), (N $accG[1] 4), (N $accG[2] 4),
+                (N $tcAction 4), (N $absAction 4),
+                (N $tyreWearRaw[0] 5), (N $tyreWearRaw[1] 5),
+                (N $tyreWearRaw[2] 5), (N $tyreWearRaw[3] 5),
+                "$inPit", "$physicsPacketId"
             )
             $sampleWriter.WriteLine(($line -join ","))
             $previousSector = $sector
