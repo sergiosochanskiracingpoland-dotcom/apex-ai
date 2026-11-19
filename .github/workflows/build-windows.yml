@@ -54,6 +54,30 @@ jobs:
         run: npm run dist
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Ensure auto-update manifest exists
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/latest.yml")) {
+            # electron-builder 26 can skip upload metadata when --publish never.
+            # Generate the same sha512/size keys from the verified NSIS installer.
+            $setup = "dist/ApexAI-Setup-0.3.1-x64.exe"
+            if (-not (Test-Path $setup)) { throw "Installer missing" }
+            $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $setup))
+            $hash = [Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData($bytes))
+            $size = $bytes.LongLength
+            $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+            $text = @"
+          version: 0.3.1
+          files:
+            - url: ApexAI-Setup-0.3.1-x64.exe
+              sha512: $hash
+              size: $size
+          path: ApexAI-Setup-0.3.1-x64.exe
+          sha512: $hash
+          releaseDate: $date
+          "@
+            Set-Content -Path "dist/latest.yml" -Value $text -Encoding utf8
+          }
       - name: Verify installers, collector and latest.yml
         shell: pwsh
         run: |
