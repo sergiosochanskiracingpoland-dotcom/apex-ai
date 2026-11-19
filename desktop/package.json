@@ -1,12 +1,13 @@
 {
   "name": "apex-ai-desktop",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
-  "description": "Apex AI ACC desktop with integrated .NET collector and automatic updates",
+  "description": "Apex AI Windows desktop: redesign, automatic ACC stint history and auto updater",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis portable --x64 --publish never"
+    "dist": "electron-builder --win nsis portable --x64 --publish never",
+    "test": "node --test tests/session-library.test.cjs"
   },
   "devDependencies": {
     "electron": "45.4.1",
@@ -22,6 +23,7 @@
       "main.cjs",
       "preload.cjs",
       "bridge.js",
+      "session-library.cjs",
       "package.json"
     ],
     "extraResources": [
@@ -32,6 +34,10 @@
       {
         "from": "bridge.js",
         "to": "dashboard/bridge.js"
+      },
+      {
+        "from": "shell.css",
+        "to": "dashboard/shell.css"
       },
       {
         "from": "collector/publish",
