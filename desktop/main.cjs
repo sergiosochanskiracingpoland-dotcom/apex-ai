@@ -5,7 +5,7 @@ const fs = require('node:fs');
 
 const dashboardPath = app.isPackaged
   ? path.join(process.resourcesPath, 'dashboard', 'index.html')
-  : path.resolve(__dirname, '..', 'index.html');
+  : path.resolve(__dirname, '..', 'archive', '0.2.15', 'index.html');
 
 let win;
 function createWindow() {
