@@ -4,6 +4,7 @@ const { autoUpdater } = require('electron-updater');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
+const sessionLibrary = require('./session-library.cjs');
 
 const resources = app.isPackaged ? process.resourcesPath : __dirname;
 const dashboardPath = app.isPackaged
@@ -12,6 +13,9 @@ const dashboardPath = app.isPackaged
 const bridgePath = app.isPackaged
   ? path.join(resources, 'dashboard', 'bridge.js')
   : path.join(__dirname, 'bridge.js');
+const shellStylePath = app.isPackaged
+  ? path.join(resources, 'dashboard', 'shell.css')
+  : path.join(__dirname, 'shell.css');
 const collectorPath = app.isPackaged
   ? path.join(resources, 'collector', 'ApexCollector.exe')
   : path.join(__dirname, 'collector', 'publish', 'ApexCollector.exe');
@@ -42,19 +46,7 @@ function keyPaths(key) {
     samples: path.join(sessionsDir, key + '_samples.csv')
   };
 }
-function latestSession() {
-  if (!fs.existsSync(sessionsDir)) return '';
-  const candidates = fs.readdirSync(sessionsDir)
-    .filter(name => name.endsWith('_laps.csv') && safeKey.test(name.slice(0,-9)))
-    .map(name => {
-      const file = path.join(sessionsDir,name);
-      try { return {key:name.slice(0,-9),time:fs.statSync(file).mtimeMs}; }
-      catch { return null; }
-    })
-    .filter(Boolean).sort((a,b) => b.time-a.time);
-  const found = candidates.find(x => fs.existsSync(keyPaths(x.key).samples));
-  return found ? found.key : '';
-}
+function latestSession() { return sessionLibrary.latestSessionKey(sessionsDir); }
 function csvSnapshot(file) {
   const stat = fs.statSync(file);
   if (stat.size > MAX_FILE_BYTES) throw new Error('Sesja jest za duża (>70 MB).');
@@ -103,7 +95,7 @@ function consumeOutput(chunk) {
 }
 function startCollector() {
   if (!fs.existsSync(collectorPath)) {
-    setCollector('error','Brak ApexCollector.exe — build 0.3.1 jest niekompletny.');
+    setCollector('error','Brak ApexCollector.exe — instalacja aplikacji jest niekompletna.');
     return;
   }
   try {
@@ -167,12 +159,12 @@ function configureUpdater() {
   updateTimer = setInterval(checkUpdates, 4 * 60 * 60 * 1000);
 }
 function createWindow() {
-  if (!fs.existsSync(dashboardPath) || !fs.existsSync(bridgePath)) {
+  if (!fs.existsSync(dashboardPath) || !fs.existsSync(bridgePath) || !fs.existsSync(shellStylePath)) {
     dialog.showErrorBox('Apex AI','Brak plików aplikacji. Zainstaluj program ponownie.');
     app.quit(); return;
   }
   win = new BrowserWindow({
-    title:'Apex AI 0.3.1 — Race Engineer', width:1400,height:960,minWidth:850,minHeight:600,
+    title:'Apex AI 0.3.2 — Race Engineer', width:1400,height:960,minWidth:850,minHeight:600,
     backgroundColor:'#090e18',show:false,
     webPreferences:{
       nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,
@@ -190,6 +182,7 @@ function createWindow() {
   win.once('ready-to-show',() => win.show());
   win.webContents.on('did-finish-load', async () => {
     try {
+      await win.webContents.insertCSS(fs.readFileSync(shellStylePath,'utf8'));
       await win.webContents.executeJavaScript(fs.readFileSync(bridgePath,'utf8'));
       send('apex:collector',{...currentState,sessionKey:currentKey,refresh:true});
       send('apex:updates',updateStatus);
@@ -212,13 +205,21 @@ function createWindow() {
     ]},
     {label:'Pomoc',submenu:[
       {label:'Repozytorium Apex AI',click:()=>shell.openExternal('https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai')},
-      {label:'O programie',click:()=>dialog.showMessageBox(win,{type:'info',message:'Apex AI 0.3.1',detail:'Automatyczna telemetria ACC w C#, import po okrążeniu i aktualizacje z GitHub Releases. Gry nie są uruchamiane z aplikacji.'})}
+      {label:'O programie',click:()=>dialog.showMessageBox(win,{type:'info',message:'Apex AI 0.3.2',detail:'Nowy interfejs, automatyczna biblioteka stintów i pełny podgląd zapisanej telemetrii. Rejestracja ACC działa w tle; uruchamianie gry z aplikacji pojawi się później.'})}
     ]}
   ]));
 }
 ipcMain.handle('apex:load-latest', async () => {
   try { return await loadLatest(); }
   catch (error) { return {error:error.message}; }
+});
+ipcMain.handle('apex:list-sessions', async () => {
+  try { return sessionLibrary.listSessions(sessionsDir); }
+  catch (e) { return {error:e.message}; }
+});
+ipcMain.handle('apex:load-session', async (_event,key) => {
+  try { return sessionLibrary.loadSession(sessionsDir,key); }
+  catch (e) { return {error:e.message}; }
 });
 ipcMain.handle('apex:check-updates',() => {checkUpdates();return true;});
 app.whenReady().then(() => {
