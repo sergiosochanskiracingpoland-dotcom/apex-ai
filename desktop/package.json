@@ -43,15 +43,18 @@
           ]
         }
       ],
-      "signAndEditExecutable": false,
-      "artifactName": "ApexAI-${version}-${arch}-${target}.${ext}"
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "Apex AI",
-      "perMachine": false
+      "perMachine": false,
+      "artifactName": "ApexAI-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "ApexAI-Portable-${version}-${arch}.${ext}"
     }
   }
 }
