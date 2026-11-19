@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 
 namespace ApexAI.Collector;
 
@@ -51,16 +52,36 @@ internal static class Program
         catch { return ("", ""); }
     }
 
-    private static string TrackName(string id) => id.Equals("imola", StringComparison.OrdinalIgnoreCase)
-        ? "Imola Autodromo Enzo e Dino Ferrari" : id;
-    private static string CarName(string id) => id.Equals("porsche_992_gt3_r", StringComparison.OrdinalIgnoreCase)
-        ? "Porsche 992 GT3 R" : id;
+    private static string TrackName(string id) => id.ToLowerInvariant() switch
+    {
+        "imola" => "Imola Autodromo Enzo e Dino Ferrari",
+        "monza" => "Autodromo Nazionale Monza",
+        "spa" => "Circuit de Spa-Francorchamps",
+        "silverstone" => "Silverstone",
+        "mount_panorama" => "Mount Panorama Bathurst",
+        "zolder" => "Circuit Zolder",
+        "brands_hatch" => "Brands Hatch",
+        "nurburgring" => "Nürburgring",
+        _ => id
+    };
+    private static string CarName(string id) => id.ToLowerInvariant() switch
+    {
+        "porsche_992_gt3_r" => "Porsche 992 GT3 R",
+        "ferrari_296_gt3" => "Ferrari 296 GT3",
+        "mercedes_amg_gt3_evo" => "Mercedes-AMG GT3 Evo",
+        "bmw_m4_gt3" => "BMW M4 GT3",
+        "lamborghini_huracan_gt3_evo2" => "Lamborghini Huracán GT3 Evo2",
+        "mclaren_720s_gt3_evo" => "McLaren 720S GT3 Evo",
+        _ => id
+    };
 
     private sealed class Session : IDisposable
     {
         public string Base { get; }
         public string Track { get; }
         public string Car { get; }
+        private readonly string metadataFile;
+        private readonly Dictionary<string,string> metadata;
         public StreamWriter Laps { get; }
         public StreamWriter Samples { get; }
         public int PreviousLap { get; set; }
@@ -79,6 +100,12 @@ internal static class Program
             Base = Path.Combine(folder, name);
             Track = track;
             Car = car;
+            metadataFile = Base + "_meta.json";
+            metadata = new Dictionary<string,string> {
+                ["track"] = track, ["car"] = car,
+                ["trackName"] = TrackName(track), ["carName"] = CarName(car),
+                ["startedAtUtc"] = DateTime.UtcNow.ToString("O", Culture)
+            };
             PreviousLap = lap;
             PreviousSector = sector;
             var utf8 = new UTF8Encoding(false);
@@ -88,6 +115,10 @@ internal static class Program
             Samples.WriteLine("timestamp_utc,completed_laps,sector_index,lap_progress,speed_kmh,gas,brake,gear,rpm,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,pressure_fl,pressure_fr,pressure_rl,pressure_rr,steer_input,g_x,g_y,g_z,tc_action,abs_action,tyre_wear_fl_raw,tyre_wear_fr_raw,tyre_wear_rl_raw,tyre_wear_rr_raw,in_pit,physics_packet_id");
             Laps.Flush();
             Samples.Flush();
+            // A sidecar makes a stint discoverable even before its first full lap.
+            // Raw CSV samples always remain the source of truth for telemetry.
+            try { File.WriteAllText(metadataFile, JsonSerializer.Serialize(metadata), utf8); }
+            catch (Exception error) { Say("ERROR", "Nie mogę zapisać metadanych stintu: " + error.Message); }
             Say("SESSION", name);
         }
         public void Dispose()
@@ -96,6 +127,9 @@ internal static class Program
             Laps.Flush();
             Samples.Dispose();
             Laps.Dispose();
+            metadata["endedAtUtc"] = DateTime.UtcNow.ToString("O", Culture);
+            try { File.WriteAllText(metadataFile, JsonSerializer.Serialize(metadata), new UTF8Encoding(false)); }
+            catch (Exception error) { Say("ERROR", "Nie mogę zamknąć metadanych stintu: " + error.Message); }
             Say("CLOSED", Path.GetFileName(Base));
         }
     }
@@ -197,6 +231,15 @@ internal static class Program
                     if (completed is < 0 or > 100000 || sector is < 0 or > 2 || !float.IsFinite(progress))
                     {
                         Thread.Sleep(100);
+                        continue;
+                    }
+                    // A stint is one continuous track run between pit visits.
+                    // Archive it automatically on pit entry and start a NEW stint on pit exit.
+                    if (inPit != 0)
+                    {
+                        if (session != null) { session.Dispose(); session = null; }
+                        State("connected", "Samochód w pit lane — stint zapisany, czekam na wyjazd");
+                        Thread.Sleep(120);
                         continue;
                     }
                     if (now >= nextInfoAt)
