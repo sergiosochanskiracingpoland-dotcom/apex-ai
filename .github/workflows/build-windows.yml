@@ -1,0 +1,46 @@
+name: Apex AI Windows installer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - "index.html"
+      - ".github/workflows/build-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-build:
+    name: Build Apex AI 0.3.0 Windows
+    runs-on: windows-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install Electron and packaging tools
+        run: npm install --no-audit --no-fund
+      - name: Verify desktop entry and dashboard
+        run: |
+          node --check main.cjs
+          node -e "const f=require('fs'); if(!f.existsSync('../index.html')) throw Error('Missing dashboard'); console.log('Dashboard ready');"
+      - name: Build unsigned Windows installer and portable EXE
+        run: npm run dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Upload Windows binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ApexAI-Windows-0.3.0
+          path: desktop/dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
