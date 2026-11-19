@@ -292,7 +292,7 @@ internal static class Program
                             }));
                             session.Laps.Flush();
                             session.Samples.Flush();
-                            Say("LAP", completed.ToString(Culture) + "|" + (lastLapMs / 1000.0).ToString("F3", Culture));
+                            Console.WriteLine("LAP|" + completed.ToString(Culture) + "|" + (lastLapMs / 1000.0).ToString("F3", Culture));
                         }
                         session.PreviousLap = completed;
                         session.Pending = null;
