@@ -179,11 +179,12 @@ function createWindow() {
   win.webContents.on('will-navigate',(event,url) => {
     if (url !== win.webContents.getURL()) event.preventDefault();
   });
-  win.once('ready-to-show',() => win.show());
+  // Show the window after the new desktop shell is injected, avoiding a legacy UI flash.
   win.webContents.on('did-finish-load', async () => {
     try {
       await win.webContents.insertCSS(fs.readFileSync(shellStylePath,'utf8'));
       await win.webContents.executeJavaScript(fs.readFileSync(bridgePath,'utf8'));
+      if (!win.isVisible()) win.show();
       send('apex:collector',{...currentState,sessionKey:currentKey,refresh:true});
       send('apex:updates',updateStatus);
     } catch (error) {
