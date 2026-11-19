@@ -63,7 +63,7 @@ jobs:
             $setup = "dist/ApexAI-Setup-0.3.1-x64.exe"
             if (-not (Test-Path $setup)) { throw "Installer missing" }
             $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $setup))
-            $hash = [Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData($bytes))
+            $hash = [Convert]::ToBase64String([System.Security.Cryptography.SHA512]::HashData($bytes))
             $size = $bytes.LongLength
             $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             $text = @"
