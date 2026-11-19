@@ -151,6 +151,8 @@ body.apx-ui>header {display:none}
 .apx-analysis-note {color:#8f819b;font-size:12px;display:block;margin-top:9px}
 #apx-legacy-host > main {max-width:none!important;margin:0!important;padding:0!important;min-width:0}
 #apx-legacy-host > main > #nav {display:none!important}
+/* Old localStorage-only 'save' is obsolete; every real ACC stint now saves to disk. */
+#apx-legacy-host #save {display:none!important}
 #apx-legacy-host > main > .controls {
  display:flex;flex-wrap:wrap;gap:9px;background:#171320;border:1px solid #392b47;
  border-radius:15px;padding:17px;margin:0 0 20px
