@@ -1,15 +1,24 @@
-# Apex AI — Race Engineer
+# Apex AI — Windows Race Engineer
 
-Prototyp do analizy jazdy w Assetto Corsa Competizione. Od 0.3.0 rozwijamy również osobną aplikację Windows.
+## Pobierz aplikację Windows 0.3.0
 
-- [Uruchom dashboard Apex AI](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)
-- [Rejestrator ACC na Windows 11 — instrukcja](acc_collector/README.md)
+**[POBIERZ APLIKACJĘ NA WINDOWS — strona główna](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
 
-Wersja 0.2.15 (pre-0.3) rozszerza dotychczasową analizę prędkości, hamulca, gazu i porównywania okrążeń o zakładkę **Analiza stintu**: wykres paliwa, temperatury i ciśnienia czterech opon, RPM, biegi, sterowanie, przybliżone G, pracę TC/ABS oraz kontrolę jakości próbek i wykrywanie pit lane. Dopasowanie stref hamowania jest ostrożniejsze. Nowy rejestrator zapisuje **30 kolumn** w `*_samples.csv`; istniejące kolumny pozostały bez zmian, a stare pliki CSV nadal można otwierać (bez nowych funkcji). **Surowe pole tyreWear nie jest jeszcze zweryfikowanym pomiarem degradacji bieżnika.** Nadal brak prawdziwego modelu AI oraz desktopowej aplikacji — to plan 0.3.x i 0.4.x. Dane analizowane są lokalnie w przeglądarce.
+Kliknij zielony przycisk **POBIERZ APLIKACJĘ NA WINDOWS** i uruchom pobrany plik `ApexAI-Setup-0.3.0-x64.exe`. Bez ZIP, szukania w GitHub Actions ani ręcznego wybierania plików.
 
-**Status:** testy statyczne i syntetyczne przeszły; wymagany test 0.2.15 w ACC i przeglądarce. 0.2.15 jest kandydatem na ostatnie wydanie 0.2.x, ale dalsze poprawki zależą od wyników.
-## Aplikacja Windows 0.3.0 (Electron)
+- [Bezpośredni instalator .exe](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.0/ApexAI-Setup-0.3.0-x64.exe)
+- [Kod aplikacji Windows](desktop/)
+- [Automatyczne wydania Windows](.github/workflows/build-windows.yml)
 
-**Nowość:** kod pierwszej aplikacji desktopowej jest w folderze [desktop/](desktop/). Nie usunięto dotychczasowego dashboardu ani rejestratora ACC. Wersja 0.3.0 otwiera pełny dashboard w osobnym oknie offline; rejestrator 0.2.15 nadal uruchamia się osobno i nadal importuje się CSV. Automatyczną integrację ACC planujemy w 0.3.1.
+Pierwsza aplikacja 0.3.0 zawiera przetestowany silnik analiz serii 0.2.15 w lokalnym oknie Windows. Automatyczne zbieranie telemetrii ACC z wnętrza programu planujemy na 0.3.1 — obecna wersja nadal wymaga plików CSV rejestrowanych osobno.
 
-**Instalator:** [GitHub Actions → Apex AI Windows installer](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/actions/workflows/build-windows.yml). Otwórz najnowszy zielony przebieg, a następnie w sekcji **Artifacts** pobierz ZIP z instalatorem i wersją portable. Jeżeli nie ma udanego przebiegu, instalator nie jest jeszcze dostępny — sprawdź [instrukcję](desktop/README.md) i status budowy. Pliki EXE są niepodpisane.
+## Archiwum serii 0.2.x
+
+- [Zachowany dashboard 0.2.15](archive/0.2.15/index.html)
+- [Uruchom archiwalny dashboard online](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/archive/0.2.15/index.html)
+- [Dotychczasowy rejestrator ACC](acc_collector/)
+- [Instrukcje i dziennik zmian 0.2.x](acc_collector/README.md)
+
+Zachowaliśmy cały kod i analizę telemetrii 0.2.15, nie zastępując ich stroną pobierania. W aplikacji 0.3.0 pakowany jest właśnie archiwalny dashboard.
+
+**Instalator jest niepodpisany** — Windows SmartScreen może wyświetlić ostrzeżenie o nieznanym wydawcy. Bezpośredni plik będzie dostępny po pomyślnym opublikowaniu wydania na GitHub Releases.
