@@ -1,8 +1,8 @@
 {
   "name": "apex-ai-desktop",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
-  "description": "Apex AI offline Windows app",
+  "description": "Apex AI ACC desktop with integrated .NET collector and automatic updates",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
@@ -20,12 +20,22 @@
     },
     "files": [
       "main.cjs",
+      "preload.cjs",
+      "bridge.js",
       "package.json"
     ],
     "extraResources": [
       {
         "from": "../archive/0.2.15/index.html",
         "to": "dashboard/index.html"
+      },
+      {
+        "from": "bridge.js",
+        "to": "dashboard/bridge.js"
+      },
+      {
+        "from": "collector/publish",
+        "to": "collector"
       }
     ],
     "win": {
@@ -55,6 +65,16 @@
     },
     "portable": {
       "artifactName": "ApexAI-Portable-${version}-${arch}.${ext}"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "sergiosochanskiracingpoland-dotcom",
+        "repo": "apex-ai"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "6.8.11"
   }
 }
