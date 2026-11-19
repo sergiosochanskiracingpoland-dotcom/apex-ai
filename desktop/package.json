@@ -24,7 +24,7 @@
     ],
     "extraResources": [
       {
-        "from": "../index.html",
+        "from": "../archive/0.2.15/index.html",
         "to": "dashboard/index.html"
       }
     ],
