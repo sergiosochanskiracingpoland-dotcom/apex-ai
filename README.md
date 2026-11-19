@@ -1,24 +1,27 @@
-# Apex AI — Windows Race Engineer
+# Apex AI — Race Engineer
 
-## Pobierz aplikację Windows 0.3.0
+## POBIERZ APLIKACJĘ NA WINDOWS
 
-**[POBIERZ APLIKACJĘ NA WINDOWS — strona główna](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
+**[STRONA POBIERANIA APEX AI 0.3.1](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
 
-Kliknij zielony przycisk **POBIERZ APLIKACJĘ NA WINDOWS** i uruchom pobrany plik `ApexAI-Setup-0.3.0-x64.exe`. Bez ZIP, szukania w GitHub Actions ani ręcznego wybierania plików.
+Instalator bezpośrednio: [ApexAI-Setup-0.3.1-x64.exe](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.1/ApexAI-Setup-0.3.1-x64.exe).
 
-- [Bezpośredni instalator .exe](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.0/ApexAI-Setup-0.3.0-x64.exe)
-- [Kod aplikacji Windows](desktop/)
-- [Automatyczne wydania Windows](.github/workflows/build-windows.yml)
+> **Aktualizacja z 0.3.0 wymaga jednorazowego ręcznego zainstalowania wersji 0.3.1.** W 0.3.0 nie było aktualizatora. Od 0.3.1 aplikacja sama sprawdza nowe wydania z GitHub, pobiera je i proponuje zainstalowanie po restarcie. Pełny mechanizm zweryfikujemy po publikacji kolejnej wersji.
 
-Pierwsza aplikacja 0.3.0 zawiera przetestowany silnik analiz serii 0.2.15 w lokalnym oknie Windows. Automatyczne zbieranie telemetrii ACC z wnętrza programu planujemy na 0.3.1 — obecna wersja nadal wymaga plików CSV rejestrowanych osobno.
+### Co nowego w 0.3.1?
 
-## Archiwum serii 0.2.x
+- Wbudowany rejestrator ACC w **C# / .NET 8**, uruchamiany wraz z aplikacją: **bez Start-ApexACC.cmd**.
+- Wykrywanie uruchomionego ACC, toru i samochodu; automatyczny zapis sesji i aktualizacja danych po ukończonym okrążeniu.
+- Automatyczne ładowanie ostatniej sesji po ponownym uruchomieniu aplikacji.
+- Pasek statusu połączenia oraz pobierania aktualizacji i przycisk „Sprawdź aktualizacje”.
+- Bez uruchamiania gier z programu i bez zmian graficznych w głównym dashboardzie — te funkcje zaplanowano później.
 
-- [Zachowany dashboard 0.2.15](archive/0.2.15/index.html)
+[Instrukcja instalacji i testów 0.3.1](desktop/README.md) | [Kod aplikacji Windows](desktop/) | [Repozytorium wydania](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases)
+
+### Archiwum 0.2.x
+
+- [Dashboard 0.2.15 — zachowany bez zmian](archive/0.2.15/index.html)
 - [Uruchom archiwalny dashboard online](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/archive/0.2.15/index.html)
-- [Dotychczasowy rejestrator ACC](acc_collector/)
-- [Instrukcje i dziennik zmian 0.2.x](acc_collector/README.md)
+- [Rejestrator PowerShell 0.2.15](acc_collector/)
 
-Zachowaliśmy cały kod i analizę telemetrii 0.2.15, nie zastępując ich stroną pobierania. W aplikacji 0.3.0 pakowany jest właśnie archiwalny dashboard.
-
-**Instalator jest niepodpisany** — Windows SmartScreen może wyświetlić ostrzeżenie o nieznanym wydawcy. Bezpośredni plik będzie dostępny po pomyślnym opublikowaniu wydania na GitHub Releases.
+**Status:** kod 0.3.1 jest przygotowany do automatycznej kompilacji Windows. Możliwość pobrania EXE zależy od powodzenia GitHub Actions i publikacji wydania v0.3.1. Instalator nie jest podpisany certyfikatem wydawcy.
