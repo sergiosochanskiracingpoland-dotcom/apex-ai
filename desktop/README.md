@@ -2,17 +2,19 @@
 
 Wersja 0.3.0 przenosi **dotychczasowy dashboard do własnego okna Windows**. To działająca aplikacja offline, korzystająca z tego samego silnika analitycznego co 0.2.15.
 
-## Pobranie i instalacja (Windows 10/11 x64)
+## Pobieranie i instalacja (Windows 10/11 x64)
 
-1. Otwórz [Apex AI — GitHub Actions](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/actions/workflows/build-windows.yml).
-2. Kliknij najnowszy **zielony, zakończony powodzeniem** przebieg „Apex AI Windows installer”.
-3. Pobierz archiwum w sekcji **Artifacts** (nazwa `ApexAI-Windows-0.3.0`); zalogowanie na GitHub może być wymagane.
-4. Rozpakuj ZIP. Powinny być dwa pliki `.exe`: instalator (NSIS) i wersja portable.
-5. Uruchom wybrany plik. Po otwarciu wybierz w menu **Apex AI → Otwórz folder sesji ACC** i zaimportuj właściwe `*_laps.csv` oraz `*_samples.csv`.
+**Jedno kliknięcie na stronie głównej:**
 
-**Uwaga:** w 0.3.0 nadal trzeba osobno uruchamiać rejestrator `acc_collector/Start-ApexACC.cmd` z głównego repozytorium. Wersja 0.3.1 ma zautomatyzować uruchamianie i import rejestracji.
+1. Wejdź na https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/
+2. Kliknij wielki przycisk **POBIERZ APLIKACJĘ NA WINDOWS**.
+3. Uruchom pobrany `ApexAI-Setup-0.3.0-x64.exe`, zainstaluj i otwórz Apex AI ze skrótu pulpitu.
 
-Instalator nie jest podpisany komercyjnym certyfikatem. Windows SmartScreen może ostrzec o nieznanym wydawcy. Nie uruchamiaj pliku, jeśli pochodzi spoza Twojego repozytorium.
+**Bez ZIP, GitHub Actions ani szukania plików.** Pobieranie prowadzi bezpośrednio do instalatora z GitHub Releases. W przypadku publikacji nowego wydania link zostanie uaktualniony na stronie.
+
+Wersja 0.3.0 otwiera archiwalny interfejs analityczny 0.2.15 we własnym oknie. Do rejestrowania kolejnych sesji ACC nadal służy kolektor 0.2.x; w 0.3.1 zastąpi go rejestracja zintegrowana z aplikacją.
+
+Instalator jest niepodpisany. System Windows może pokazać ostrzeżenie SmartScreen o nieznanym wydawcy.
 
 ## Funkcje
 
@@ -36,7 +38,7 @@ npm run dist
 ```
 Wyniki pojawią się w `desktop/dist`.
 
-Aplikacja **pakuje główny `index.html`** z katalogu repozytorium. Dzięki temu dashboard na GitHub Pages oraz aplikacja korzystają z tego samego kodu. Przyszłe wersje mogą przekształcić frontend w React.
+Aplikacja **pakuje archiwalny `archive/0.2.15/index.html`** z katalogu repozytorium. Dzięki temu dashboard na GitHub Pages oraz aplikacja korzystają z tego samego kodu. Przyszłe wersje mogą przekształcić frontend w React.
 
 ## Status i ograniczenia
 
