@@ -21,6 +21,9 @@ body.apx-ui::before {
 }
 body.apx-ui>header {display:none}
 #apx-shell * {box-sizing:border-box}
+/* The archived dashboard defines a global SVG height of 240px; do not let that stretch shell icons. */
+#apx-sidebar svg,#apx-topbar svg,.apx-hero svg,.apx-metric svg,.apx-last svg,.apx-stint svg {width:20px!important;height:20px!important;flex:0 0 20px;}
+
 #apx-shell {position:relative;min-height:100vh;z-index:1}
 #apx-sidebar {
   position:fixed;inset:0 auto 0 0;width:252px;z-index:20;
