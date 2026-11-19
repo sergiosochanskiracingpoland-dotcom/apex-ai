@@ -77,7 +77,7 @@
           '<div class="apx-statgrid">'+
             '<div class="apx-metric"><div class="apx-metric-label">'+svg('flag')+' Zapisane stinty</div><strong id="apx-stats-stints">0</strong><small>wszystkie dotychczasowe sesje</small></div>'+
             '<div class="apx-metric"><div class="apx-metric-label">'+svg('clock')+' Pełne okrążenia</div><strong id="apx-stats-laps">0</strong><small>zarejestrowane czasy</small></div>'+
-            '<div class="apx-metric"><div class="apx-metric-label">'+svg('trophy')+' Najlepszy czas</div><strong id="apx-stats-best">—</strong><small>najlepszy zapis w bibliotece</small></div>'+
+            '<div class="apx-metric"><div class="apx-metric-label">'+svg('trophy')+' Best ostatniego stintu</div><strong id="apx-stats-best">—</strong><small>dla ostatniej jazdy</small></div>'+
           '</div>'+
           '<div id="apx-home-latest" class="apx-last"><div><small>OSTATNI STINT</small><h3>Jeszcze nie ma zapisanych stintów</h3><p>Po uruchomieniu ACC aplikacja rozpocznie zapisywanie danych.</p></div></div>'+
         '</div>'+
@@ -143,7 +143,7 @@
     $('apx-current-page').textContent=pageLabels[view];
     $('apx-breadcrumb').textContent=pageLabels[view];
     document.body.classList.remove('apx-mobile-open');
-    $('apx-content').scrollIntoView({block:'start',behavior:'instant'});
+    $('apx-content').scrollIntoView({block:'start',behavior:'auto'});
   }
   document.querySelectorAll('.apx-navbtn').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
   document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.goto)));
@@ -156,10 +156,10 @@
   function sessionLabel(s) {return (s.trackName||s.track||'Nieznany tor')+' · '+(s.carName||s.car||'Nieznany samochód');}
   function renderStats() {
     const totalLaps=sessions.reduce((sum,x)=>sum+(Number(x.lapCount)||0),0);
-    const timed=sessions.map(x=>Number(x.bestLap)).filter(x=>x>0&&x<600);
+    const recentBest=Number(sessions[0]?.bestLap);
     $('apx-stats-stints').textContent=String(sessions.length);
     $('apx-stats-laps').textContent=totalLaps.toLocaleString('pl-PL');
-    $('apx-stats-best').textContent=formatTime(timed.length?Math.min(...timed):NaN);
+    $('apx-stats-best').textContent=formatTime(recentBest);
     const last=sessions[0];
     if(!last)return;
     $('apx-home-latest').innerHTML=
