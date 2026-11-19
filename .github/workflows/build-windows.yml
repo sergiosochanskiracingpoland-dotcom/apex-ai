@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   windows-build:
-    name: Build and publish Windows 0.3.1
+    name: Build and publish Windows 0.3.2
     runs-on: windows-latest
     timeout-minutes: 45
     defaults:
@@ -48,6 +48,8 @@ jobs:
           node --check main.cjs
           node --check preload.cjs
           node --check bridge.js
+          node --check session-library.cjs
+          npm test
           node -e "const f=require('node:fs');if(!f.existsSync('../archive/0.2.15/index.html'))throw Error('Missing dashboard');if(!f.existsSync('collector/publish/ApexCollector.exe'))throw Error('Missing collector');console.log('Collector and dashboard ready');"
           if ($LASTEXITCODE -ne 0) { throw "Desktop source validation failed" }
       - name: Build Windows setup with updater metadata
@@ -60,19 +62,19 @@ jobs:
           if (-not (Test-Path "dist/latest.yml")) {
             # electron-builder 26 can skip upload metadata when --publish never.
             # Generate the same sha512/size keys from the verified NSIS installer.
-            $setup = "dist/ApexAI-Setup-0.3.1-x64.exe"
+            $setup = "dist/ApexAI-Setup-0.3.2-x64.exe"
             if (-not (Test-Path $setup)) { throw "Installer missing" }
             $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $setup))
             $hash = [Convert]::ToBase64String([System.Security.Cryptography.SHA512]::HashData($bytes))
             $size = $bytes.LongLength
             $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             $text = @"
-          version: 0.3.1
+          version: 0.3.2
           files:
-            - url: ApexAI-Setup-0.3.1-x64.exe
+            - url: ApexAI-Setup-0.3.2-x64.exe
               sha512: $hash
               size: $size
-          path: ApexAI-Setup-0.3.1-x64.exe
+          path: ApexAI-Setup-0.3.2-x64.exe
           sha512: $hash
           releaseDate: $date
           "@
@@ -82,24 +84,26 @@ jobs:
         shell: pwsh
         run: |
           $expected = @(
-            "dist/ApexAI-Setup-0.3.1-x64.exe",
-            "dist/ApexAI-Portable-0.3.1-x64.exe",
+            "dist/ApexAI-Setup-0.3.2-x64.exe",
+            "dist/ApexAI-Portable-0.3.2-x64.exe",
             "dist/latest.yml"
           )
           foreach ($file in $expected) {
             if (-not (Test-Path $file)) { throw "Missing release file: $file" }
             Write-Output "Verified $file"
           }
-          if ((Get-Item "dist/ApexAI-Setup-0.3.1-x64.exe").Length -lt 10000000) {
+          if ((Get-Item "dist/ApexAI-Setup-0.3.2-x64.exe").Length -lt 10000000) {
             throw "Installer unexpectedly small"
           }
           $manifest = Get-Content "dist/latest.yml" -Raw
-          if ($manifest -notmatch "ApexAI-Setup-0.3.1-x64.exe" -or $manifest -notmatch "sha512:") {
+          if ($manifest -notmatch "ApexAI-Setup-0.3.2-x64.exe" -or $manifest -notmatch "sha512:") {
             throw "latest.yml is missing installer or hash"
           }
           $unpacked = "dist/win-unpacked/resources"
           if (-not (Test-Path "$unpacked/collector/ApexCollector.exe")) { throw "Collector not included in packaged app" }
           if (-not (Test-Path "$unpacked/dashboard/index.html")) { throw "Dashboard not included in packaged app" }
+          if (-not (Test-Path "$unpacked/dashboard/bridge.js")) { throw "New UI not included in packaged app" }
+          if (-not (Test-Path "$unpacked/dashboard/shell.css")) { throw "New stylesheet not included in packaged app" }
           if (-not (Test-Path "$unpacked/app-update.yml")) { throw "Auto-updater feed not included in packaged app" }
       - name: Publish setup and auto-update manifest on GitHub
         shell: pwsh
@@ -107,10 +111,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $repo = $env:GITHUB_REPOSITORY
-          $tag = "v0.3.1"
+          $tag = "v0.3.2"
           $files = @(
-            "dist/ApexAI-Setup-0.3.1-x64.exe",
-            "dist/ApexAI-Portable-0.3.1-x64.exe",
+            "dist/ApexAI-Setup-0.3.2-x64.exe",
+            "dist/ApexAI-Portable-0.3.2-x64.exe",
             "dist/latest.yml"
           )
           $files += @(Get-ChildItem "dist/*.blockmap" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
@@ -118,7 +122,7 @@ jobs:
           if ($LASTEXITCODE -eq 0) {
             gh release upload $tag @files --repo $repo --clobber
           } else {
-            gh release create $tag @files --repo $repo --target $env:GITHUB_SHA --latest --title "Apex AI 0.3.1 — Windows" --notes "Apex AI 0.3.1: C# collector uruchamiany wewnątrz aplikacji, automatyczny import po okrążeniu oraz automatyczne aktualizacje dla kolejnych wersji. Instalator Windows 10/11 x64 jest niepodpisany."
+            gh release create $tag @files --repo $repo --target $env:GITHUB_SHA --latest --title "Apex AI 0.3.2 — Windows" --notes "Apex AI 0.3.2: nowy ciemny interfejs z bocznym menu, automatyczna biblioteka wszystkich stintów, otwieranie pełnej telemetrii z historii, zapis po wjeździe do pit lane. Aktualizacje z poprzednich wersji obsługuje electron-updater. Instalator Windows 10/11 x64 jest niepodpisany."
           }
           if ($LASTEXITCODE -ne 0) { throw "Release failed" }
           gh release edit $tag --repo $repo --draft=false --latest
@@ -128,7 +132,7 @@ jobs:
       - name: Backup binaries and updater manifest
         uses: actions/upload-artifact@v4
         with:
-          name: ApexAI-Windows-0.3.1
+          name: ApexAI-Windows-0.3.2
           path: |
             desktop/dist/*.exe
             desktop/dist/latest.yml
