@@ -48,6 +48,7 @@ jobs:
           node --check main.cjs
           node --check preload.cjs
           node --check ui/app.js
+          node --check ui/analysis.js
           node --check preferences.cjs
           node --check session-library.cjs
           npm test
@@ -102,7 +103,7 @@ jobs:
           }
           $unpacked = "dist/win-unpacked/resources"
           if (-not (Test-Path "$unpacked/collector/ApexCollector.exe")) { throw "Collector not included in packaged app" }
-          foreach ($ui in @("index.html", "app.js", "style.css")) {
+          foreach ($ui in @("index.html", "app.js", "analysis.js", "style.css")) {
             if (-not (Test-Path "$unpacked/ui/$ui")) { throw "Missing redesigned UI resource: $ui" }
           }
           if (-not (Test-Path "$unpacked/app-update.yml")) { throw "Auto-updater config missing" }
