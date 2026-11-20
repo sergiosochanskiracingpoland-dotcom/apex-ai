@@ -58,6 +58,7 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/prepare-wallpapers.ps1
+          Add-Type -AssemblyName System.Drawing
           if ($LASTEXITCODE -ne 0) { throw "Wallpaper preparation failed" }
           foreach ($id in @("gt3", "gt3b", "wec", "wecb", "f1", "f1b")) {
             $file = "ui/wallpapers/$id.jpg"
@@ -86,7 +87,7 @@ jobs:
             $size = $bytes.LongLength
             $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             $text = @"
-          version: 0.3.4.5
+          version: 0.3.5-beta.5
           files:
             - url: ApexAI-Setup-0.3.4.5-x64.exe
               sha512: $hash
@@ -127,14 +128,13 @@ jobs:
           }
           if (-not (Test-Path "$unpacked/ui/wallpapers/credits.json")) { throw "Missing CC0 wallpaper credits" }
           if (-not (Test-Path "$unpacked/app-update.yml")) { throw "Auto-updater config missing" }
-          if (-not (Test-Path "$unpacked/app-update.yml")) { throw "Auto-updater feed not included in packaged app" }
       - name: Publish setup and auto-update manifest on GitHub
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $repo = $env:GITHUB_REPOSITORY
-          $tag = "v0.3.4.5"
+          $tag = "v0.3.5-beta.5"
           $files = @(
             "dist/ApexAI-Setup-0.3.4.5-x64.exe",
             "dist/ApexAI-Portable-0.3.4.5-x64.exe",
