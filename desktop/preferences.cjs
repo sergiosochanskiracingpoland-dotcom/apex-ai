@@ -8,8 +8,8 @@ const DEFAULT={
  accent:'#a46bfa',accent2:'#ed4c75',theme:'violet',
  wallpaper:'none',customWallpaper:'',blur:8,brightness:35,saturation:95,
  opacity:100,sidebarCompact:false,displayDensity:'normal',
- visibleWidgets:['pace','sectors','speed','pedals','fuel','tyres','compare','quality'],
- widgetOrder:['pace','sectors','speed','pedals','fuel','tyres','compare','quality']
+ visibleWidgets:['pace','sectors','speed','pedals','fuel','tyres','compare','race','quality'],
+ widgetOrder:['pace','sectors','speed','pedals','fuel','tyres','compare','race','quality']
 };
 const WIDGETS=new Set(DEFAULT.widgetOrder);
 const WALLPAPERS=new Set(['none','gt3','wec','f1','custom']);
