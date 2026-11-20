@@ -95,6 +95,12 @@
         '<div class="apx-page" id="apx-page-analytics" hidden>'+
           '<div class="apx-analysis-intro"><div><div class="apx-kicker">TELEMETRY WORKSPACE</div><h1 class="apx-page-title" id="apx-analysis-title">Dashboard</h1><p class="apx-page-sub" id="apx-analysis-desc">Wyniki jazdy i telemetria w jednym miejscu.</p></div>'+
           '<span class="apx-session-caption" id="apx-active-session">Nie wybrano stintu</span></div>'+
+          '<div id="apx-report-toolbar" class="apx-report-toolbar" hidden>'+
+            '<div><strong>Pełna telemetria zapisanego stintu</strong><small>Dashboard i analiza stintu — ten sam zestaw danych</small></div>'+
+            '<div class="apx-report-actions"><button type="button" class="apx-button apx-button--soft" data-report-target="dashboard">'+svg('dashboard')+' Dashboard</button>'+
+            '<button type="button" class="apx-button apx-button--soft" data-report-target="stint">'+svg('stint')+' Analiza stintu</button>'+
+            '<button type="button" class="apx-button" data-goto="history">'+svg('history')+' Wróć do historii</button></div>'+
+          '</div>'+
           '<div class="apx-empty" id="apx-analytics-empty"><strong>Twoje analizy pojawią się tutaj</strong>Wybierz stint w Historii lub uruchom ACC. Możesz też użyć przycisku „Załaduj sesję demo”, aby obejrzeć wykresy już dziś.</div>'+
           '<div id="apx-legacy-host"></div>'+
         '</div>'+
@@ -108,8 +114,23 @@
   document.body.classList.add('apx-ui');
 
   const $ = id => document.getElementById(id);
-  const pageLabels = Object.fromEntries(links.map(x=>[x[0],x[1]]));
+  const pageLabels = {...Object.fromEntries(links.map(x=>[x[0],x[1]])), report:'Pełny raport stintu'};
   const pages = {home:$('apx-page-home'),history:$('apx-page-history'),future:$('apx-page-future'),analytics:$('apx-page-analytics')};
+  // History opens a complete report: existing dashboard PLUS all stint-analysis charts.
+  // This preserves the original analysis functions and data instead of duplicating logic.
+  for(const [id,title,description] of [
+    ['dashboard','Dashboard','Tempo, sektory, prędkość, pedały i porównanie okrążeń'],
+    ['stint','Analiza stintu','Paliwo, opony, elektronika i kontrola jakości danych']
+  ]) {
+    const section=$(id);
+    if(section && !document.getElementById('apx-report-'+id+'-label')){
+      const heading=document.createElement('div');
+      heading.id='apx-report-'+id+'-label';
+      heading.className='apx-report-section-heading';
+      heading.innerHTML='<div class="apx-kicker">PEŁNY RAPORT SESJI</div><h2>'+title+'</h2><p>'+description+'</p>';
+      section.parentNode.insertBefore(heading,section);
+    }
+  }
   let currentView='home', currentKey='', currentMeta=null;
   let sessions=[],lastImportedKey='',lastImportedLapCount=-1;
   let lastRecordedKey='', importBusy=false,importTimer=null,scanBusy=false,loadedDemo=false;
@@ -122,16 +143,27 @@
   function setView(view) {
     if(!pageLabels[view])return;
     currentView=view;
-    document.querySelectorAll('.apx-navbtn').forEach(b=>b.setAttribute('aria-current',b.dataset.view===view?'page':'false'));
+    document.querySelectorAll('.apx-navbtn').forEach(b=>b.setAttribute('aria-current',(b.dataset.view===view||(view==='report'&&b.dataset.view==='history'))?'page':'false'));
+    const fullReport=view==='report';
+    document.body.classList.toggle('apx-report-view',fullReport);
+    $('apx-report-toolbar').hidden=!fullReport;
     Object.values(pages).forEach(x=>x.hidden=true);
     if(view==='home')pages.home.hidden=false;
     else if(view==='history'){pages.history.hidden=false;void refreshLibrary();}
-    else if(view==='dashboard'||view==='stint'){
+    else if(view==='dashboard'||view==='stint'||view==='report'){
       pages.analytics.hidden=false;
-      const legacyButton=document.querySelector('#nav [data-tab="'+view+'"]');
+      const legacyTab=view==='report'?'dashboard':view;
+      const legacyButton=document.querySelector('#nav [data-tab="'+legacyTab+'"]');
       if(legacyButton)legacyButton.click();
-      $('apx-analysis-title').textContent=view==='stint'?'Analiza stintu':'Dashboard';
-      $('apx-analysis-desc').textContent=view==='stint'?'Pełna telemetria, opony, paliwo, tempo, hamowania i porównania okrążeń.':'Przegląd wyników i analiza tempa kierowcy.';
+      if(view==='report') {
+        // The old tab handler hides all sections. Restore BOTH historical views.
+        $('dashboard').classList.remove('hidden');
+        $('stint').classList.remove('hidden');
+      }
+      $('apx-analysis-title').textContent=view==='report'?'Pełny raport stintu':view==='stint'?'Analiza stintu':'Dashboard';
+      $('apx-analysis-desc').textContent=view==='report'
+        ?'Wszystkie dostępne dane z wybranego stintu: dashboard, porównania okrążeń, opony, paliwo i jakość telemetrii.'
+        :view==='stint'?'Opony, paliwo, tempo, hamowania i pełna telemetria.':'Przegląd wyników i analiza tempa kierowcy.';
     }else {
       pages.future.hidden=false;
       const [title,heading,copy,emoji]=futureTexts[view];
@@ -141,12 +173,17 @@
       $('apx-future-icon').textContent=emoji;
     }
     $('apx-current-page').textContent=pageLabels[view];
-    $('apx-breadcrumb').textContent=pageLabels[view];
+    $('apx-breadcrumb').textContent=view==='report'?'Historia / Pełny raport stintu':pageLabels[view];
     document.body.classList.remove('apx-mobile-open');
     $('apx-content').scrollIntoView({block:'start',behavior:'auto'});
   }
   document.querySelectorAll('.apx-navbtn').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
   document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.goto)));
+  document.querySelectorAll('[data-report-target]').forEach(button=>button.addEventListener('click',()=>{
+    if(currentView!=='report')return;
+    document.getElementById('apx-report-'+button.dataset.reportTarget+'-label')
+      ?.scrollIntoView({block:'start',behavior:'smooth'});
+  }));
   $('apx-menu-toggle').addEventListener('click',()=>{
     if(window.innerWidth<670)document.body.classList.toggle('apx-mobile-open');
     else document.body.classList.toggle('apx-collapsed');
@@ -229,7 +266,7 @@
       lastImportedKey=data.key;lastImportedLapCount=parsedLaps.length;
       $('apx-active-session').textContent=meta?sessionLabel(meta)+' · '+formatDate(meta.date):'Stint '+data.key;
       $('apx-analytics-empty').hidden=true;
-      if(!opts.quiet)setView('stint');
+      if(!opts.quiet)setView('report');
     }catch(e) {
       if(!opts.quiet) {
         setView('history');
