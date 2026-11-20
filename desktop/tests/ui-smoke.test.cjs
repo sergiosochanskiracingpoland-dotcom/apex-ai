@@ -31,7 +31,7 @@ async function makeDom(config={},withStint=true) {
  let state=prefs.normalize(config);
  const saves=[];
  window.apexDesktop={
-  version:'0.3.4',
+  version:'0.3.4.5',
   getPreferences:async()=>state,
   savePreferences:async v=>{state=prefs.normalize(v);saves.push(state);return state;},
   listSessions:async()=>sessions,
@@ -101,4 +101,46 @@ test('Live view shows no invented measurements when ACC is disconnected',async t
  d.querySelector('[data-nav="live"]').click();
  assert.match(d.querySelector('#live-conn').textContent,/Waiting/);
  assert.equal(d.querySelector('#live-speed').textContent,'—');
+});
+
+test('CC0 wallpaper is loaded from local package, not external Wikimedia URLs',async t=>{
+ const {window}=await makeDom({setupComplete:true,wallpaper:'none'},false);
+ t.after(()=>window.close());
+ const d=window.document;
+ d.querySelector('[data-nav="settings"]').click();
+ assert.equal(d.querySelectorAll('[data-wallpaper]').length,8);
+ d.querySelector('[data-wallpaper="gt3"]').click();
+ const background=d.getElementById('wallpaper').style.backgroundImage;
+ assert.match(background,/wallpapers\/gt3\.jpg/);
+ assert.doesNotMatch(background,/wikimedia\.org/);
+ const preview=d.getElementById('wallpaper-preview-image').style.backgroundImage;
+ assert.match(preview,/wallpapers\/gt3\.jpg/);
+});
+test('Blur/brightness/saturation/opacity update wallpaper visibly and reset to defaults',async t=>{
+ const {window,getSaves}=await makeDom({setupComplete:true,wallpaper:'wec',blur:6,brightness:78},false);
+ t.after(()=>window.close());
+ const d=window.document;
+ d.querySelector('[data-nav="settings"]').click();
+ const slider=d.querySelector('[data-pref="blur"]');
+ slider.value='18';
+ slider.dispatchEvent(new window.Event('input',{bubbles:true}));
+ assert.match(d.getElementById('wallpaper').style.filter,/blur\(18px\)/);
+ assert.match(d.getElementById('wallpaper-preview-image').style.filter,/blur\(6px\)/);
+ const bright=d.querySelector('[data-pref="brightness"]');
+ bright.value='95';
+ bright.dispatchEvent(new window.Event('input',{bubbles:true}));
+ assert.match(d.getElementById('wallpaper').style.filter,/brightness\(0\.95\)/);
+ d.querySelector('[data-action="reset-wallpaper"]').click();
+ assert.match(d.getElementById('wallpaper').style.filter,/blur\(6px\)/);
+ assert.match(d.getElementById('wallpaper').style.filter,/brightness\(0\.78\)/);
+ await new Promise(r=>setTimeout(r,300));
+ assert.equal(getSaves().at(-1).blur,6);
+ assert.equal(getSaves().at(-1).brightness,78);
+});
+test('Existing 0.3.4 wallpaper preference remains compatible',()=>{
+ const old=prefs.normalize({version:1,wallpaper:'gt3',brightness:35});
+ assert.equal(old.wallpaper,'gt3');
+ assert.equal(old.brightness,35);
+ const added=prefs.normalize({wallpaper:'f1b'});
+ assert.equal(added.wallpaper,'f1b');
 });
