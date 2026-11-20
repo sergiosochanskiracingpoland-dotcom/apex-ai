@@ -1,8 +1,8 @@
 {
   "name": "apex-ai-desktop",
-  "version": "0.3.4",
+  "version": "0.3.5-beta.5",
   "private": true,
-  "description": "Apex AI desktop: complete customizable multilingual redesign and live ACC telemetry",
+  "description": "Apex AI 0.3.4.5: offline CC0 16:9 motorsport wallpapers and wallpaper controls",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
@@ -60,10 +60,10 @@
       "createDesktopShortcut": true,
       "shortcutName": "Apex AI",
       "perMachine": false,
-      "artifactName": "ApexAI-Setup-${version}-${arch}.${ext}"
+      "artifactName": "ApexAI-Setup-0.3.4.5-${arch}.${ext}"
     },
     "portable": {
-      "artifactName": "ApexAI-Portable-${version}-${arch}.${ext}"
+      "artifactName": "ApexAI-Portable-0.3.4.5-${arch}.${ext}"
     },
     "publish": [
       {
