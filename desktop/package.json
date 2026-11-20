@@ -1,8 +1,8 @@
 {
   "name": "apex-ai-desktop",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
-  "description": "Apex AI Windows desktop: redesign, automatic ACC stint history and auto updater",
+  "description": "Apex AI 0.3.3: unified full reports for recorded ACC stints",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
