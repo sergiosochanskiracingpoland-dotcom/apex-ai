@@ -174,7 +174,7 @@ function toast(msg) {
   toastTimer=setTimeout(()=>{if(x)x.hidden=true;},3300);
 }
 function collectorLabel(){return ['waiting','connected','recording'].includes(state.collector.code)?t(state.collector.code):state.collector.text||t('waiting');}
-function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return updaterLabel();const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
+function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.4';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
 function style(){
   const c=state.cfg;
   document.documentElement.style.setProperty('--accent1',c.accent);
