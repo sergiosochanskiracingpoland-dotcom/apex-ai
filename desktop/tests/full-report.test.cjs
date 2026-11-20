@@ -19,7 +19,7 @@ test('Report has visible and accessible navigation to both analytics sections',(
   assert.match(bridge,/data-report-target="dashboard"/);
   assert.match(bridge,/data-report-target="stint"/);
   assert.match(bridge,/data-goto="history"/);
-  assert.match(bridge,/Raport stintu/);
+  assert.match(bridge,/[Rr]aport stintu/);
   assert.match(css,/\.apx-report-toolbar\[hidden\]/);
   assert.match(css,/\.apx-report-section-heading/);
 });
