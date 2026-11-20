@@ -23,7 +23,7 @@ pl:{
  speed:'Prędkość',gear:'Bieg',rpm:'Obroty',fuel:'Paliwo',throttle:'Gaz',brake:'Hamulec',
  lapProgress:'Postęp okrążenia',tyreTemp:'Temperatury opon',tyrePressure:'Ciśnienie opon',
  lap:'Okrążenie',time:'Czas',best:'Najlepszy',average:'Średnia',deviation:'Odchylenie',
- sectors:'Sektory',pace:'Tempo okrążeń',speedPlot:'Prędkość na okrążeniu',pedals:'Gaz i hamulec',
+ sectors:'Sektory',race:'Analiza hamowań',pace:'Tempo okrążeń',speedPlot:'Prędkość na okrążeniu',pedals:'Gaz i hamulec',
  fuelPlot:'Zużycie paliwa',tyrePlot:'Temperatury opon',compare:'Porównanie okrążeń',
  quality:'Jakość telemetrii',analysis:'Wnioski z jazdy',overview:'Podsumowanie przejazdu',
  lapA:'Okrążenie A',lapB:'Okrążenie B',selectedLap:'Wybrane okrążenie',
@@ -80,7 +80,7 @@ en:{
  speed:'Speed',gear:'Gear',rpm:'RPM',fuel:'Fuel',throttle:'Throttle',brake:'Brake',
  lapProgress:'Lap progress',tyreTemp:'Tyre temperatures',tyrePressure:'Tyre pressures',
  lap:'Lap',time:'Time',best:'Best',average:'Average',deviation:'Deviation',
- sectors:'Sectors',pace:'Lap pace',speedPlot:'Lap speed',pedals:'Throttle and brake',
+ sectors:'Sectors',race:'Braking analysis',pace:'Lap pace',speedPlot:'Lap speed',pedals:'Throttle and brake',
  fuelPlot:'Fuel consumption',tyrePlot:'Tyre temperatures',compare:'Compare laps',
  quality:'Telemetry quality',analysis:'Driving insights',overview:'Session overview',
  lapA:'Lap A',lapB:'Lap B',selectedLap:'Selected lap',
@@ -163,7 +163,7 @@ const std=arr=>arr.length>1?Math.sqrt(arr.reduce((a,b)=>a+(b-avg(arr))**2,0)/arr
 const cssUrl=file=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(file)+'?width=1600';
 const wikiFile=file=>'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(file);
 const E=id=>document.getElementById(id);
-const WIDGETS=['pace','sectors','speed','pedals','fuel','tyres','compare','quality'];
+const WIDGETS=['pace','sectors','speed','pedals','fuel','tyres','compare','race','quality'];
 let savePending=null,toastTimer=null;
 function toast(msg) {
   let x=E('toast');if(!x){x=document.createElement('div');x.id='toast';x.className='toast';root.appendChild(x);}
@@ -189,12 +189,24 @@ function style(){
   }
 }
 function persist(){if(savePending)clearTimeout(savePending);savePending=setTimeout(async()=>{
-  try{state.cfg=await api.savePreferences(state.cfg);}catch(e){toast(t('unsaved')+': '+e.message);}
+  try{
+   const saved=await api.savePreferences(state.cfg);
+   if(!saved||saved.error){toast(t('unsaved')+': '+(saved?.error||'unknown'));return;}
+   state.cfg=saved;
+  }catch(e){toast(t('unsaved')+': '+e.message);}
 },220);}
 function patch(key,value){state.cfg[key]=value;style();persist();}
-function nameSession(s) {
-  const format=x=>String(x||'').replace(/[_-]/g,' ').replace(/\b[a-z]/g,x=>x.toUpperCase());
-  return [s.trackName||format(s.track)||'?',s.carName||format(s.car)||'?'].join(' · ');
+function cleanName(x){
+ const aliases={
+  imola:'Imola Autodromo Enzo e Dino Ferrari',monza:'Autodromo Nazionale Monza',
+  ferrari_296_gt3:'Ferrari 296 GT3',porsche_992_gt3_r:'Porsche 992 GT3 R',
+  silverstone:'Silverstone',spa:'Circuit de Spa-Francorchamps'
+ };
+ const raw=String(x||'').trim();
+ return aliases[raw.toLowerCase()]||raw.replace(/[_-]/g,' ').replace(/\b[a-z]/g,c=>c.toUpperCase());
+}
+function nameSession(s){
+ return [cleanName(s.trackName||s.track)||'?',cleanName(s.carName||s.car)||'?'].join(' · ');
 }
 function navItems(){
  return [['home','home'],['dashboard','dashboard'],['stint','stint'],['history','history'],['live','live'],
@@ -368,7 +380,6 @@ function paceCard(){
  const laps=state.laps.filter(x=>Number.isFinite(x.time));
  const n=laps.length;
  const times=laps.map(x=>x.time);
- const lo=Math.min(...times,0),hi=Math.max(...times,1);
  const pts=laps.map((x,i)=>[n<2?.5:i/(n-1),x.time]);
  return chartCard('pace',t('pace'),chart([{color:state.cfg.accent,points:pts}],'s',{min:Math.max(0,Math.min(...times)-.7)}),
   t('telemetryHint'));
@@ -431,7 +442,36 @@ function qualityCard(){
  metric(t('timeGaps'),String(gaps))+metric('Max Δt',max?Math.round(max)+' ms':'—')+'</div>'+
  '<p class="widget-caption" style="margin-top:14px">'+esc(t('test75'))+'</p></section>';
 }
-const widgetRender={pace:paceCard,sectors:sectorsCard,speed:speedCard,pedals:pedalsCard,fuel:fuelCard,tyres:tyreCard,compare:compareCard,quality:qualityCard};
+function raceCard(){
+ const data=window.ApexRaceAnalysis?.analyze(state.samples,state.lapA,state.lapB);
+ if(!data?.lapsValid)return chartCard('race',t('race'),'<div class="empty">'+esc(t('noValidCompare'))+'</div>');
+ const deltas=data.deltaBars.filter(x=>Number.isFinite(x.delta));
+ const big=data.zones.filter(x=>Number.isFinite(x.delta)).sort((a,b)=>b.delta-a.delta).slice(0,10);
+ const width=690,height=155,baseline=78,scale=58/Math.max(.2,...deltas.map(x=>Math.abs(x.delta)));
+ let svg='<svg role="img" aria-label="Local lap time delta" viewBox="0 0 730 195"><line x1="30" x2="710" y1="'+baseline+'" y2="'+baseline+'" stroke="#b2a0c0" opacity=".5"/>';
+ for(const v of deltas){
+  const x=30+v.start*width;
+  const h=Math.abs(v.delta)*scale;
+  svg+='<rect x="'+x.toFixed(2)+'" y="'+(v.delta>0?baseline-h:baseline)+'" width="'+(width/20-3)+'" height="'+h.toFixed(2)+'" fill="'+(v.delta>0?'#e6a35d':'#50cbaa')+'"/>';
+ }
+ svg+='<text class="chart-label" x="30" y="184">0%</text><text class="chart-label" x="345" y="184">50%</text><text class="chart-label" x="675" y="184">100%</text></svg>';
+ const rows=big.map(z=>'<tr><td>'+Math.round(z.start*100)+'–'+Math.round(z.end*100)+'%</td>'+
+ '<td>'+num(z.minA,1)+' km/h</td><td>'+num(z.minB,1)+' km/h</td>'+
+ '<td style="color:'+(z.delta>0?'#eeb07b':'#70e5c0')+'">'+(z.delta>0?'+':'')+num(z.delta,3)+' s</td></tr>').join('');
+ return '<section class="glass widget wide" data-widget="race"><div class="widget-header"><h3>'+esc(t('race'))+' · Race Analysis</h3>'+
+ '<div class="row">'+lapSelect('lapA',state.lapA)+lapSelect('lapB',state.lapB)+'</div></div>'+
+ '<p class="small">'+(state.cfg.language==='en'
+  ?'Local time differences: orange = B slower; green = B faster. Estimates from timestamped samples.'
+  :'Lokalne różnice czasu: pomarańczowy = B wolniejsze, zielony = B szybsze. Szacunki z próbek z czasem UTC.')+'</p>'+
+ svg+legend([{color:'#e6a35d',label:'B > A'},{color:'#50cbaa',label:'B < A'}])+
+ '<h3 style="margin:23px 0 10px">'+(state.cfg.language==='en'?'Detected braking zones':'Wykryte strefy hamowania')+'</h3>'+
+ (rows?'<div class="data-table-wrap"><table><thead><tr><th>'+esc(t('section'))+'</th><th>Min A</th><th>Min B</th><th>Δ B−A</th></tr></thead><tbody>'+rows+'</tbody></table></div>':
+ '<p class="small">'+esc(t('noValidCompare'))+'</p>')+
+ '<p class="widget-caption">'+(state.cfg.language==='en'
+ ?'Estimated zones based on brake input above 18%; not official track corner locations.'
+ :'Szacunkowe strefy na podstawie hamulca powyżej 18%; nie są oficjalnymi zakrętami toru.')+'</p></section>';
+}
+const widgetRender={pace:paceCard,sectors:sectorsCard,speed:speedCard,pedals:pedalsCard,fuel:fuelCard,tyres:tyreCard,compare:compareCard,race:raceCard,quality:qualityCard};
 function widgets(ids){return '<div class="widget-grid">'+ids.map(x=>widgetRender[x]?.()||'').join('')+'</div>';}
 function noSession(){return '<div class="empty"><strong>'+esc(t('noData'))+'</strong>'+esc(t('chooseSession'))+'</div>';}
 function dashboard(){
@@ -462,8 +502,11 @@ function electronicsCard(){
  const useful=state.samples.filter(s=>s.speed_kmh>30);
  const tc=useful.filter(s=>s.gas>.15&&s.tc_action>0).length;
  const abs=useful.filter(s=>s.brake>.15&&s.abs_action>0).length;
- const rpmMax=Math.max(...state.samples.map(x=>Number.isFinite(x.rpm)?x.rpm:0),0);
- const gearMax=Math.max(...state.samples.map(x=>Number.isFinite(x.gear)?x.gear:0),0);
+ let rpmMax=0,gearMax=0;
+ for(const x of state.samples){
+  if(Number.isFinite(x.rpm)&&x.rpm>rpmMax)rpmMax=x.rpm;
+  if(Number.isFinite(x.gear)&&x.gear>gearMax)gearMax=x.gear;
+ }
  return '<section class="glass widget"><div class="widget-header"><h3>Electronics · TC / ABS</h3></div>'+
  '<div class="summary-grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+
  metric('Max RPM',rpmMax?String(Math.round(rpmMax)):'—')+metric('Max gear',gearMax?String(gearMax):'—')+
@@ -492,7 +535,7 @@ function insights(){
 function stint(){
  return head('STINT INTELLIGENCE',t('stint'),t('stintSub'),sessionHead())+
  (state.currentKey?'<div class="summary-grid">'+summaryStats()+'</div><div class="widget-grid">'+
- stintTable()+fuelCard()+tyreCard()+tyrePressureCard()+electronicsCard()+qualityCard()+insights()+'</div>':noSession());
+ stintTable()+fuelCard()+tyreCard()+tyrePressureCard()+electronicsCard()+raceCard()+qualityCard()+insights()+'</div>':noSession());
 }
 function report(){
  return head('SESSION ARCHIVE',t('showFull'),t('fullSub'),sessionHead())+
@@ -510,8 +553,8 @@ function history(){
  '<div class="toolbar"><input id="session-search" type="search" value="'+esc(state.search)+'" placeholder="'+esc(t('search'))+'" style="min-width:270px;flex:1;max-width:550px" />'+
  '<span class="small">'+list.length+' / '+state.sessions.length+'</span></div>'+
  (list.length?'<div class="library-grid">'+list.map(x=>'<button class="session-card" data-open="'+esc(x.key)+'">'+
- '<small>ACC · '+esc(date(x.date))+'</small><h3>'+esc(x.trackName||x.track||t('track'))+'</h3>'+
- '<p>'+esc(x.carName||x.car||t('car'))+'</p><footer><span>'+Number(x.lapCount||0)+' '+esc(t('laps'))+' · <b>'+time(x.bestLap)+'</b></span>'+
+ '<small>ACC · '+esc(date(x.date))+'</small><h3>'+esc(cleanName(x.trackName||x.track)||t('track'))+'</h3>'+
+ '<p>'+esc(cleanName(x.carName||x.car)||t('car'))+'</p><footer><span>'+Number(x.lapCount||0)+' '+esc(t('laps'))+' · <b>'+time(x.bestLap)+'</b></span>'+
  '<span style="color:var(--accent1)">↗</span></footer></button>').join('')+'</div>':
  '<div class="empty"><strong>'+esc(state.search?t('noMatching'):t('noSessions'))+'</strong>'+esc(t('startToSave'))+'</div>');
 }
@@ -729,7 +772,12 @@ async function click(e){
   }
   if(action==='onboard-next'){state.onboardingStep=Math.min(2,state.onboardingStep+1);renderPage();return;}
   if(action==='onboard-back'){state.onboardingStep=Math.max(0,state.onboardingStep-1);renderPage();return;}
-  if(action==='onboard-finish'){state.cfg.setupComplete=true;state.cfg=await api.savePreferences(state.cfg);navigate('home');toast(t('ready'));return;}
+  if(action==='onboard-finish'){
+    state.cfg.setupComplete=true;
+    const saved=await api.savePreferences(state.cfg);
+    if(!saved||saved.error)throw Error(saved?.error||t('unsaved'));
+    state.cfg=saved;navigate('home');toast(t('ready'));return;
+  }
  }catch(err){toast(String(err.message||err));}
 }
 function change(e){
