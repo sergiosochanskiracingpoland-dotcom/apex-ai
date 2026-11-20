@@ -161,7 +161,7 @@ function createWindow(){
   dialog.showErrorBox('Apex AI','Missing desktop UI resources. Reinstall Apex AI.');app.quit();return;
  }
  win=new BrowserWindow({
-  title:'Apex AI 0.3.4',width:1450,height:960,minWidth:900,minHeight:650,
+  title:'Apex AI 0.3.4.5',width:1450,height:960,minWidth:900,minHeight:650,
   show:false,frame:false,backgroundColor:'#090a0f',autoHideMenuBar:true,
   webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,
    preload:path.join(__dirname,'preload.cjs')}
