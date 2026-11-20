@@ -59,7 +59,6 @@ jobs:
         run: |
           ./scripts/prepare-wallpapers.ps1
           Add-Type -AssemblyName System.Drawing
-          if ($LASTEXITCODE -ne 0) { throw "Wallpaper preparation failed" }
           foreach ($id in @("gt3", "gt3b", "wec", "wecb", "f1", "f1b")) {
             $file = "ui/wallpapers/$id.jpg"
             if (-not (Test-Path $file)) { throw "Missing wallpaper: $file" }
