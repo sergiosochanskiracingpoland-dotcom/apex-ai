@@ -219,3 +219,36 @@ body.apx-collapsed .apx-sidebar-foot {align-items:center}
  #apx-legacy-host .grid,#apx-legacy-host .engGrid {display:block}
  #apx-legacy-host .stats {grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* History => complete report: exact same dashboard telemetry plus detailed stint graphs. */
+.apx-report-toolbar[hidden] {display:none!important}
+.apx-report-toolbar {
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+  background:linear-gradient(110deg,rgba(145,81,195,.17),rgba(210,73,112,.10));
+  border:1px solid #60406c;border-radius:15px;padding:16px 19px;margin:0 0 23px;
+}
+.apx-report-toolbar strong {display:block;color:#f4e9ff;font-weight:700;font-size:14px}
+.apx-report-toolbar small {display:block;color:#c0accf;font-size:11px;margin-top:4px}
+.apx-report-actions {display:flex;flex-wrap:wrap;gap:8px}
+.apx-report-actions .apx-button {min-height:38px;padding:8px 12px;font-size:12px}
+.apx-report-section-heading {display:none}
+body.apx-report-view .apx-report-section-heading {
+ display:block;margin:24px 0 15px;padding:18px 0 6px;
+ scroll-margin-top:110px;
+}
+body.apx-report-view .apx-report-section-heading:not(:first-of-type) {
+ border-top:1px solid #493452;padding-top:30px;margin-top:30px;
+}
+body.apx-report-view .apx-report-section-heading h2 {
+ color:#f5eafa;font-size:24px;letter-spacing:-.04em;margin:9px 0 4px
+}
+body.apx-report-view .apx-report-section-heading p {
+ color:#9b8bab;font-size:12px;margin:0;
+}
+body.apx-report-view #apx-legacy-host section#dashboard,
+body.apx-report-view #apx-legacy-host section#stint {display:block}
+body.apx-report-view #apx-legacy-host section#dashboard.hidden,
+body.apx-report-view #apx-legacy-host section#stint.hidden {display:none}
+@media(max-width:650px) {
+ .apx-report-toolbar {align-items:flex-start;flex-direction:column}
+}
