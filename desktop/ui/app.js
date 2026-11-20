@@ -121,10 +121,15 @@ en:{
  polish:'Polski',english:'English',now:'LIVE'
 }
 };
+// Six licensed CC0 motorsport photos are cropped to 1920x1080
+// and bundled inside the installer. No external image loading at runtime.
 const wallpaperPresets={
- gt3:{title:'GT3 · Donington',file:'British_GT_GT3_cars_at_Donington.jpg',author:'Bradley Wurth',license:'CC BY 4.0'},
- wec:{title:'WEC · Le Mans',file:'2024_24_Hours_of_Le_Mans_(54093434907).jpg',author:'mickeil WEC',license:'CC BY 2.0'},
- f1:{title:'F1 · BMW',file:'BMW_Formula_1_race_car.jpg',author:'Mark Fosh',license:'CC BY 2.0'}
+ gt3:{title:'GT3 · Toyota GR',file:'gt3.jpg',original:'Toyota_GR_GT3_Prototype_cropped.jpg',author:'TTTNIS',license:'CC0 1.0'},
+ gt3b:{title:'GT3 · Toyota Rear',file:'gt3b.jpg',original:'Toyota_GR_GT3_Prototype_rear.jpg',author:'TTTNIS',license:'CC0 1.0'},
+ wec:{title:'Le Mans · 2023',file:'wec.jpg',original:'Car_65_Manuel_Maldonado_in_Le_Mans_2023.jpg',author:'Briansoprano',license:'CC0 1.0'},
+ wecb:{title:'Le Mans · Classic',file:'wecb.jpg',original:'24_hours_of_Le_Mans_1990.jpg',author:'RandolphGuffey',license:'CC0 1.0'},
+ f1:{title:'F1 · 2026',file:'f1.jpg',original:'2026_f1_regulation.jpg',author:'BlackFlash06',license:'CC0 1.0'},
+ f1b:{title:'F1 · Audi',file:'f1b.jpg',original:'Audi_Revolut_F1.jpg',author:'Mustang Joe',license:'CC0 1.0'}
 };
 const themes={
  violet:['#a46bfa','#ed4c75'],red:['#f35c69','#b52a47'],
@@ -162,7 +167,7 @@ const time=v=>{const a=Number(v);if(!(a>0&&a<600))return '—';const ms=Math.rou
 const num=(v,d=1)=>Number.isFinite(Number(v))?Number(v).toFixed(d):'—';
 const avg=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:NaN;
 const std=arr=>arr.length>1?Math.sqrt(arr.reduce((a,b)=>a+(b-avg(arr))**2,0)/arr.length):NaN;
-const cssUrl=file=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(file)+'?width=1600';
+const localWallpaper=file=>new URL('./wallpapers/'+file,document.baseURI).href;
 const wikiFile=file=>'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(file);
 const E=id=>document.getElementById(id);
 const WIDGETS=['pace','sectors','speed','pedals','fuel','tyres','compare','race','quality'];
@@ -174,7 +179,7 @@ function toast(msg) {
   toastTimer=setTimeout(()=>{if(x)x.hidden=true;},3300);
 }
 function collectorLabel(){return ['waiting','connected','recording'].includes(state.collector.code)?t(state.collector.code):state.collector.text||t('waiting');}
-function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.4';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
+function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.4.5';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
 function style(){
   const c=state.cfg;
   document.documentElement.style.setProperty('--accent1',c.accent);
@@ -186,10 +191,17 @@ function style(){
   if(back){
     let url='';
     if(c.wallpaper==='custom'&&c.customWallpaper)url=c.customWallpaper;
-    else if(wallpaperPresets[c.wallpaper])url=cssUrl(wallpaperPresets[c.wallpaper].file);
+    else if(wallpaperPresets[c.wallpaper])url=localWallpaper(wallpaperPresets[c.wallpaper].file);
     back.style.backgroundImage=url?'url("'+url+'")':'none';
     back.style.opacity=c.wallpaper==='none'?'0':String(c.opacity/100);
     back.style.filter='blur('+c.blur+'px) brightness('+(c.brightness/100)+') saturate('+(c.saturation/100)+')';
+  }
+  const preview=E('wallpaper-preview-image');
+  if(preview){
+    const image=c.wallpaper==='custom'?c.customWallpaper:wallpaperPresets[c.wallpaper]?localWallpaper(wallpaperPresets[c.wallpaper].file):'';
+    preview.style.backgroundImage=image?'url("'+image+'")':'none';
+    preview.style.opacity=image?String(c.opacity/100):'0';
+    preview.style.filter='blur('+(c.blur/3)+'px) brightness('+(c.brightness/100)+') saturate('+(c.saturation/100)+')';
   }
 }
 function persist(){if(savePending)clearTimeout(savePending);savePending=setTimeout(async()=>{
@@ -220,7 +232,7 @@ function shell(){
  const c=state.cfg,short=c.sidebarCompact;
  root.innerHTML=
  '<div id="wallpaper"></div><div id="wallpaper-shade"></div>'+
- '<div class="titlebar"><div class="titleleft"><span class="mark">A</span>APEX AI <small>RACE INTELLIGENCE · 0.3.4</small></div>'+
+ '<div class="titlebar"><div class="titleleft"><span class="mark">A</span>APEX AI <small>RACE INTELLIGENCE · 0.3.4.5</small></div>'+
  '<div class="windowcontrols"><button class="winbtn" data-action="minimize" title="Minimize">−</button>'+
  '<button class="winbtn" data-action="maximize" title="Maximize">□</button>'+
  '<button class="winbtn close" data-action="close" title="Close">×</button></div></div>'+
@@ -230,7 +242,7 @@ function shell(){
  '<span class="navlabel">'+esc(t(k))+'</span>'+( ['setups','engineer','drive'].includes(k)?'<span class="soon">'+esc(t('planned'))+'</span>':'')+'</button>').join('')+'</nav>'+
  '<div class="navspacer"></div><div class="navbottom"><button class="navitem'+(state.view==='settings'?' active':'')+'" data-nav="settings" title="'+esc(t('settings'))+'">'+symbol('settings')+
  '<span class="navlabel">'+esc(t('settings'))+'</span></button>'+
- '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.4</span></div></div></aside>'+
+ '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.4.5</span></div></div></aside>'+
  '<div class="contentarea"><div class="topbar"><div class="top-left"><button class="ghost-square" data-action="toggle-sidebar" title="Menu">'+symbol('menu')+'</button>'+
  '<div class="top-page"><strong id="top-title">'+esc(t(state.view==='report'?'showFull':state.view))+'</strong><small>APEX AI / <span id="top-subtitle">'+esc(t(state.view==='report'?'history':state.view))+'</span></small></div></div>'+
  '<div class="top-right"><span class="connection"><i id="connection-dot" class="dot '+esc(state.collector.code)+'"></i><span id="connection-label">'+esc(state.collector.text||t('waiting'))+'</span></span>'+
@@ -585,7 +597,7 @@ function noPreview(){return '<div class="preset-preview none">✦</div>';}
 function wallpaperOptions(){
  const list=[['none',t('none')],...Object.entries(wallpaperPresets).map(([id,v])=>[id,v.title]),['custom',t('own')]];
  return '<div class="preset-grid">'+list.map(([id,name])=>{
-  let image=id==='custom'?(state.cfg.customWallpaper||''):wallpaperPresets[id]?cssUrl(wallpaperPresets[id].file):'';
+  let image=id==='custom'?(state.cfg.customWallpaper||''):wallpaperPresets[id]?localWallpaper(wallpaperPresets[id].file):'';
   return '<button class="preset'+(state.cfg.wallpaper===id?' selected':'')+'" data-wallpaper="'+id+'"'+(id==='custom'&&!state.cfg.customWallpaper?' disabled':'')+'>'+
   '<div class="preset-preview '+(id==='none'?'none':'')+'"'+(image?' style="background-image:url(&quot;'+esc(image)+'&quot;)"':'')+'>'+
   (id==='none'?'✦':id==='custom'?'✚':'')+'</div><span>'+esc(name)+'</span></button>';
@@ -625,11 +637,13 @@ function settings(){
  widgetOptions()+'</section>'+
  '<section class="glass settings-card wide"><h3>'+esc(t('backdrop'))+'</h3><p>'+esc(t('wallHelp'))+'</p>'+
  wallpaperOptions()+'<button class="btn" data-action="choose-wallpaper">'+symbol('folder')+esc(t('upload'))+'</button>'+
+ '<div class="wallpaper-preview" id="wallpaper-preview"><div id="wallpaper-preview-image"></div><div class="wallpaper-preview-label">APEX AI · WALLPAPER PREVIEW</div></div>'+
  '<div class="sliders" style="margin:25px 0">'+prefInput('blur',t('blur'),0,30,' px')+
  prefInput('brightness',t('brightness'),10,100,'%')+prefInput('saturation',t('saturation'),0,180,'%')+
  prefInput('opacity',t('opacity'),0,100,'%')+'</div>'+
+ '<button class="btn tiny" data-action="reset-wallpaper">'+esc(state.cfg.language==='en'?'Reset wallpaper adjustments':'Przywróć ustawienia tapety')+'</button>'+
  '<div class="credits">'+Object.values(wallpaperPresets).map(p=>
- esc(p.title)+' — '+esc(p.author)+' ('+esc(p.license)+'). <a class="external" href="'+esc(wikiFile(p.file))+'" target="_blank" rel="noopener">Wikimedia Commons</a>').join(' · ')+'</div></section>'+
+ esc(p.title)+' — '+esc(p.author)+' ('+esc(p.license)+'). <a class="external" href="'+esc(wikiFile(p.original))+'" target="_blank" rel="noopener">Wikimedia Commons</a>').join(' · ')+'</div></section>'+
  '<section class="glass settings-card"><h3>'+esc(t('backup'))+'</h3><p>'+esc(t('backupHelp'))+'</p>'+
  '<div class="buttons"><button class="btn" data-action="export">'+symbol('download')+esc(t('export'))+'</button>'+
  '<button class="btn" data-action="import">'+symbol('folder')+esc(t('import'))+'</button></div>'+
@@ -640,7 +654,7 @@ function settings(){
  (state.updater.code==='ready'?'<button class="btn primary" data-action="install-update">'+esc(t('installUpdate'))+'</button>':'')+'</div>'+
  '<p class="small">'+esc(t('test75'))+'</p></section>'+
  '<section class="glass settings-card wide"><h3>'+esc(t('about'))+'</h3><div class="row">'+
- '<span class="small">'+esc(t('version'))+': <b>0.3.4</b></span>'+
+ '<span class="small">'+esc(t('version'))+': <b>0.3.4.5</b></span>'+
  '<span class="small">'+esc(t('recorder'))+': <b id="recorder-settings">'+esc(state.collector.text||t('waiting'))+'</b></span>'+
  '<button class="btn tiny" data-action="open-folder">'+symbol('folder')+esc(t('openFolder'))+'</button></div></section></div>';
 }
@@ -681,7 +695,7 @@ function updateStatus(){
  const label=collectorLabel();
  for(const id of ['connection-label','side-status','recorder-settings'])if(E(id))E(id).textContent=label;
  for(const id of ['connection-dot'])if(E(id))E(id).className='dot '+c.code;
- if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.4';
+ if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.4.5';
  if(E('update-text'))E('update-text').textContent=updaterLabel();
  if(E('live-dot')){E('live-dot').className='dot '+c.code;}
  if(E('live-conn'))E('live-conn').textContent=c.code==='recording'?t('liveRecording'):t('liveWaiting');
@@ -743,7 +757,10 @@ async function click(e){
  }
  if(b.dataset.wallpaper){
   if(b.dataset.wallpaper==='custom'&&!state.cfg.customWallpaper)return;
-  patch('wallpaper',b.dataset.wallpaper);renderPage();return;
+  const firstSelection=state.cfg.wallpaper==='none'&&b.dataset.wallpaper!=='none';
+  state.cfg.wallpaper=b.dataset.wallpaper;
+  if(firstSelection&&state.cfg.brightness<=35)state.cfg.brightness=78;
+  persist();renderPage();style();return;
  }
  if(b.dataset.moveWidget){
   const index=state.cfg.widgetOrder.indexOf(b.dataset.moveWidget),j=index+Number(b.dataset.direction);
@@ -759,9 +776,13 @@ async function click(e){
   if(action==='check-updates'){await api.checkUpdates();return;}
   if(action==='install-update'){await api.installUpdate();return;}
   if(action==='open-folder'){await api.openSessionsFolder();return;}
+  if(action==='reset-wallpaper'){
+   state.cfg.blur=6;state.cfg.brightness=78;state.cfg.saturation=95;state.cfg.opacity=100;
+   persist();renderPage();style();return;
+  }
   if(action==='choose-wallpaper'){
    const result=await api.chooseWallpaper();
-   if(result?.data){state.cfg.customWallpaper=result.data;state.cfg.wallpaper='custom';persist();renderPage();style();}
+   if(result?.data){state.cfg.customWallpaper=result.data;state.cfg.wallpaper='custom';if(state.cfg.brightness<=35)state.cfg.brightness=78;persist();renderPage();style();}
    else if(result?.error)toast(result.error);
    return;
   }
