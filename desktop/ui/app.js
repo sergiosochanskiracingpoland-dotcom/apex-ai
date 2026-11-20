@@ -6,7 +6,7 @@ const dict={
 pl:{
  home:'Strona główna',dashboard:'Dashboard',stint:'Analiza stintu',history:'Historia',live:'Na torze',
  settings:'Ustawienia',setups:'Setupy',engineer:'Inżynier AI',drive:'Jedź',
- workspace:'PRZESTRZEŃ KIEROWCY',waiting:'Oczekiwanie na ACC',recording:'Nagrywanie sesji ACC',
+ workspace:'PRZESTRZEŃ KIEROWCY',waiting:'Oczekiwanie na ACC',connected:'ACC wykryte',recording:'Nagrywanie sesji ACC',
  welcome:'Witaj',driver:'Kierowco',heroSub:'Twoje tempo. Twoje postępy. Wszystkie przejazdy w jednym miejscu.',
  openHistory:'Otwórz bibliotekę',current:'Aktualny przejazd',recorded:'Zapisane stinty',laps:'Okrążenia',
  lastBest:'Best ostatniego stintu',lastSession:'OSTATNI STINT',noSessions:'Nie masz jeszcze zapisanych przejazdów.',
@@ -49,6 +49,7 @@ pl:{
  onboarding:'PIERWSZE URUCHOMIENIE',step:'KROK',stepOne:'Poznajmy kierowcę',stepOneSub:'Wybierz nazwę i język. Możesz je zmienić później w Ustawieniach.',
  stepTwo:'Twój styl',stepTwoSub:'Wybierz kolorystykę interfejsu lub ustaw własne akcenty.',
  stepThree:'Twój kokpit',stepThreeSub:'Wybierz tło aplikacji. Możesz też dodać własne zdjęcie później.',
+ updateReady:'Aktualizacja gotowa do instalacji',updateCurrent:'Masz aktualną wersję Apex AI',updateChecking:'Sprawdzanie aktualizacji…',updateAvailable:'Dostępna nowa wersja',updateDownloading:'Pobieranie aktualizacji',updateError:'Błąd aktualizacji',
  ready:'Apex AI gotowe',status:'Status',copied:'Skopiowano',noLaps:'W tym stincie nie ma jeszcze pełnych okrążeń.',
  lapBest:'Najlepsze okrążenie',noValidCompare:'Za mało poprawnych próbek do porównania tych okrążeń.',
  dataLocal:'Dane pozostają lokalnie na Twoim komputerze.',showAll:'Pełna analiza',
@@ -63,7 +64,7 @@ pl:{
 en:{
  home:'Home',dashboard:'Dashboard',stint:'Stint analysis',history:'History',live:'On track',
  settings:'Settings',setups:'Setups',engineer:'AI engineer',drive:'Drive',
- workspace:'DRIVER WORKSPACE',waiting:'Waiting for ACC',recording:'Recording ACC session',
+ workspace:'DRIVER WORKSPACE',waiting:'Waiting for ACC',connected:'ACC detected',recording:'Recording ACC session',
  welcome:'Welcome',driver:'Driver',heroSub:'Your pace. Your progress. Every run in one place.',
  openHistory:'Open session library',current:'Current run',recorded:'Saved stints',laps:'Laps',
  lastBest:'Last stint best',lastSession:'LAST STINT',noSessions:'No saved stints yet.',
@@ -106,6 +107,7 @@ en:{
  onboarding:'FIRST LAUNCH',step:'STEP',stepOne:'Meet your driver',stepOneSub:'Choose your name and language. You can change both later in Settings.',
  stepTwo:'Your racing colors',stepTwoSub:'Choose a preset or customize both interface accent colors.',
  stepThree:'Your cockpit',stepThreeSub:'Choose an app wallpaper. You can upload your own photo later.',
+ updateReady:'Update ready to install',updateCurrent:'Apex AI is up to date',updateChecking:'Checking for updates…',updateAvailable:'Update available',updateDownloading:'Downloading update',updateError:'Update failed',
  ready:'Apex AI ready',status:'Status',copied:'Copied',noLaps:'This stint has no complete laps yet.',
  lapBest:'Best lap',noValidCompare:'Not enough valid samples to compare these laps.',
  dataLocal:'Your telemetry stays on this computer.',showAll:'Full analysis',
@@ -171,6 +173,8 @@ function toast(msg) {
   if(toastTimer)clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>{if(x)x.hidden=true;},3300);
 }
+function collectorLabel(){return ['waiting','connected','recording'].includes(state.collector.code)?t(state.collector.code):state.collector.text||t('waiting');}
+function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return updaterLabel();const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
 function style(){
   const c=state.cfg;
   document.documentElement.style.setProperty('--accent1',c.accent);
@@ -226,11 +230,11 @@ function shell(){
  '<span class="navlabel">'+esc(t(k))+'</span>'+( ['setups','engineer','drive'].includes(k)?'<span class="soon">'+esc(t('planned'))+'</span>':'')+'</button>').join('')+'</nav>'+
  '<div class="navspacer"></div><div class="navbottom"><button class="navitem'+(state.view==='settings'?' active':'')+'" data-nav="settings" title="'+esc(t('settings'))+'">'+symbol('settings')+
  '<span class="navlabel">'+esc(t('settings'))+'</span></button>'+
- '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(state.collector.text||t('waiting'))+'</span><br><span style="opacity:.6">APEX AI 0.3.4</span></div></div></aside>'+
+ '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.4</span></div></div></aside>'+
  '<div class="contentarea"><div class="topbar"><div class="top-left"><button class="ghost-square" data-action="toggle-sidebar" title="Menu">'+symbol('menu')+'</button>'+
  '<div class="top-page"><strong id="top-title">'+esc(t(state.view==='report'?'showFull':state.view))+'</strong><small>APEX AI / <span id="top-subtitle">'+esc(t(state.view==='report'?'history':state.view))+'</span></small></div></div>'+
  '<div class="top-right"><span class="connection"><i id="connection-dot" class="dot '+esc(state.collector.code)+'"></i><span id="connection-label">'+esc(state.collector.text||t('waiting'))+'</span></span>'+
- '<span class="version" id="update-label">'+esc(state.updater.text||'v0.3.4')+'</span></div></div>'+
+ '<span class="version" id="update-label">'+esc(updaterLabel())+'</span></div></div>'+
  '<main id="page"></main></div></div><div class="toast" id="toast" hidden></div>';
  style();renderPage();
 }
@@ -262,7 +266,7 @@ function sessionHead() {
 }
 function home(){
  const latest=state.sessions[0],total=state.sessions.reduce((n,s)=>n+(Number(s.lapCount)||0),0);
- return '<div class="hero"><div class="kicker">YOUR RACE · YOUR DATA</div><h1>'+esc(t('welcome'))+', <span class="gradient">'+esc(state.cfg.driver)+'.</span></h1>'+
+ return '<div class="hero"><div class="kicker">YOUR RACE · YOUR DATA</div><h1>'+esc(t('welcome'))+', <span class="gradient">'+esc(state.cfg.language==='en'&&state.cfg.driver==='Kierowco'?'Driver':state.cfg.driver)+'.</span></h1>'+
  '<p class="subtitle">'+esc(t('heroSub'))+'</p><div class="buttons">'+
  '<button class="btn primary" data-nav="history">'+symbol('history')+esc(t('openHistory'))+' →</button>'+
  '<button class="btn" data-nav="live">'+symbol('live')+esc(t('current'))+'</button></div></div>'+
@@ -631,7 +635,7 @@ function settings(){
  '<button class="btn" data-action="import">'+symbol('folder')+esc(t('import'))+'</button></div>'+
  '<p class="small">'+esc(t('dataLocal'))+'</p></section>'+
  '<section class="glass settings-card"><h3>'+esc(t('update'))+'</h3>'+
- '<p id="update-text">'+esc(state.updater.text||t('waitingUpdate'))+'</p>'+
+ '<p id="update-text">'+esc(updaterLabel())+'</p>'+
  '<div class="buttons"><button class="btn" data-action="check-updates">'+esc(t('checkUpdate'))+'</button>'+
  (state.updater.code==='ready'?'<button class="btn primary" data-action="install-update">'+esc(t('installUpdate'))+'</button>':'')+'</div>'+
  '<p class="small">'+esc(t('test75'))+'</p></section>'+
@@ -674,11 +678,11 @@ function renderPage(){
 }
 function updateStatus(){
  const c=state.collector;
- const label=c.text||t('waiting');
+ const label=collectorLabel();
  for(const id of ['connection-label','side-status','recorder-settings'])if(E(id))E(id).textContent=label;
  for(const id of ['connection-dot'])if(E(id))E(id).className='dot '+c.code;
  if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.4';
- if(E('update-text'))E('update-text').textContent=state.updater.text||t('waitingUpdate');
+ if(E('update-text'))E('update-text').textContent=updaterLabel();
  if(E('live-dot')){E('live-dot').className='dot '+c.code;}
  if(E('live-conn'))E('live-conn').textContent=c.code==='recording'?t('liveRecording'):t('liveWaiting');
 }
@@ -849,7 +853,8 @@ async function boot(){
   });
   api.onUpdates(msg=>{if(!msg)return;state.updater=msg;updateStatus();if(state.view==='settings')renderPage();});
   setInterval(()=>void refreshSessions(),15000);
-  setInterval(async()=>{if(state.view!=='live')return;try{state.live=await api.getLiveTelemetry();updateLiveDOM();}catch{}},150);
+  let liveBusy=false;
+  setInterval(async()=>{if(state.view!=='live'||liveBusy)return;liveBusy=true;try{state.live=await api.getLiveTelemetry();updateLiveDOM();}catch{}finally{liveBusy=false;}},150);
  }catch(e){root.textContent='Apex AI: '+String(e.message||e);}
 }
 void boot();
