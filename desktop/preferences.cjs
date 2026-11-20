@@ -6,13 +6,13 @@ const path=require('node:path');
 const DEFAULT={
  version:1,setupComplete:false,driver:'Kierowco',language:'pl',
  accent:'#a46bfa',accent2:'#ed4c75',theme:'violet',
- wallpaper:'none',customWallpaper:'',blur:8,brightness:35,saturation:95,
+ wallpaper:'none',customWallpaper:'',blur:6,brightness:78,saturation:95,
  opacity:100,sidebarCompact:false,displayDensity:'normal',
  visibleWidgets:['pace','sectors','speed','pedals','fuel','tyres','compare','race','quality'],
  widgetOrder:['pace','sectors','speed','pedals','fuel','tyres','compare','race','quality']
 };
 const WIDGETS=new Set(DEFAULT.widgetOrder);
-const WALLPAPERS=new Set(['none','gt3','wec','f1','custom']);
+const WALLPAPERS=new Set(['none','gt3','gt3b','wec','wecb','f1','f1b','custom']);
 const COLORS=/^#[0-9a-f]{6}$/i;
 const IMG=/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 function safeName(name){return typeof name==='string'?name.replace(/[<>\u0000-\u001F]/g,'').trim().slice(0,45):'';}
