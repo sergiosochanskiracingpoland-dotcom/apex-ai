@@ -1,8 +1,8 @@
 {
   "name": "apex-ai-desktop",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
-  "description": "Apex AI 0.3.3: unified full reports for recorded ACC stints",
+  "description": "Apex AI desktop: complete customizable multilingual redesign and live ACC telemetry",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
@@ -22,22 +22,14 @@
     "files": [
       "main.cjs",
       "preload.cjs",
-      "bridge.js",
       "session-library.cjs",
+      "preferences.cjs",
       "package.json"
     ],
     "extraResources": [
       {
-        "from": "../archive/0.2.15/index.html",
-        "to": "dashboard/index.html"
-      },
-      {
-        "from": "bridge.js",
-        "to": "dashboard/bridge.js"
-      },
-      {
-        "from": "shell.css",
-        "to": "dashboard/shell.css"
+        "from": "ui",
+        "to": "ui"
       },
       {
         "from": "collector/publish",
