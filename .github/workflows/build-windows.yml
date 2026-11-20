@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   windows-build:
-    name: Build and publish Windows 0.3.4
+    name: Build and publish Windows 0.3.4.5
     runs-on: windows-latest
     timeout-minutes: 45
     defaults:
@@ -54,6 +54,21 @@ jobs:
           npm test
           node -e "const f=require('node:fs');if(!f.existsSync('../archive/0.2.15/index.html'))throw Error('Missing dashboard');if(!f.existsSync('collector/publish/ApexCollector.exe'))throw Error('Missing collector');console.log('Collector and dashboard ready');"
           if ($LASTEXITCODE -ne 0) { throw "Desktop source validation failed" }
+      - name: Prepare six offline CC0 wallpapers (1920x1080)
+        shell: pwsh
+        run: |
+          ./scripts/prepare-wallpapers.ps1
+          if ($LASTEXITCODE -ne 0) { throw "Wallpaper preparation failed" }
+          foreach ($id in @("gt3", "gt3b", "wec", "wecb", "f1", "f1b")) {
+            $file = "ui/wallpapers/$id.jpg"
+            if (-not (Test-Path $file)) { throw "Missing wallpaper: $file" }
+            $img = [System.Drawing.Image]::FromFile((Resolve-Path $file))
+            try {
+              if ($img.Width -ne 1920 -or $img.Height -ne 1080) {
+                throw "Wrong wallpaper dimensions: $file"
+              }
+            } finally { $img.Dispose() }
+          }
       - name: Build Windows setup with updater metadata
         run: npm run dist
         env:
@@ -64,19 +79,19 @@ jobs:
           if (-not (Test-Path "dist/latest.yml")) {
             # electron-builder 26 can skip upload metadata when --publish never.
             # Generate the same sha512/size keys from the verified NSIS installer.
-            $setup = "dist/ApexAI-Setup-0.3.4-x64.exe"
+            $setup = "dist/ApexAI-Setup-0.3.4.5-x64.exe"
             if (-not (Test-Path $setup)) { throw "Installer missing" }
             $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $setup))
             $hash = [Convert]::ToBase64String([System.Security.Cryptography.SHA512]::HashData($bytes))
             $size = $bytes.LongLength
             $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             $text = @"
-          version: 0.3.4
+          version: 0.3.4.5
           files:
-            - url: ApexAI-Setup-0.3.4-x64.exe
+            - url: ApexAI-Setup-0.3.4.5-x64.exe
               sha512: $hash
               size: $size
-          path: ApexAI-Setup-0.3.4-x64.exe
+          path: ApexAI-Setup-0.3.4.5-x64.exe
           sha512: $hash
           releaseDate: $date
           "@
@@ -86,19 +101,19 @@ jobs:
         shell: pwsh
         run: |
           $expected = @(
-            "dist/ApexAI-Setup-0.3.4-x64.exe",
-            "dist/ApexAI-Portable-0.3.4-x64.exe",
+            "dist/ApexAI-Setup-0.3.4.5-x64.exe",
+            "dist/ApexAI-Portable-0.3.4.5-x64.exe",
             "dist/latest.yml"
           )
           foreach ($file in $expected) {
             if (-not (Test-Path $file)) { throw "Missing release file: $file" }
             Write-Output "Verified $file"
           }
-          if ((Get-Item "dist/ApexAI-Setup-0.3.4-x64.exe").Length -lt 10000000) {
+          if ((Get-Item "dist/ApexAI-Setup-0.3.4.5-x64.exe").Length -lt 10000000) {
             throw "Installer unexpectedly small"
           }
           $manifest = Get-Content "dist/latest.yml" -Raw
-          if ($manifest -notmatch "ApexAI-Setup-0.3.4-x64.exe" -or $manifest -notmatch "sha512:") {
+          if ($manifest -notmatch "ApexAI-Setup-0.3.4.5-x64.exe" -or $manifest -notmatch "sha512:") {
             throw "latest.yml is missing installer or hash"
           }
           $unpacked = "dist/win-unpacked/resources"
@@ -106,6 +121,11 @@ jobs:
           foreach ($ui in @("index.html", "app.js", "analysis.js", "style.css")) {
             if (-not (Test-Path "$unpacked/ui/$ui")) { throw "Missing redesigned UI resource: $ui" }
           }
+          foreach ($id in @("gt3", "gt3b", "wec", "wecb", "f1", "f1b")) {
+            $asset = "$unpacked/ui/wallpapers/$id.jpg"
+            if (-not (Test-Path $asset)) { throw "Offline CC0 wallpaper missing in installer: $asset" }
+          }
+          if (-not (Test-Path "$unpacked/ui/wallpapers/credits.json")) { throw "Missing CC0 wallpaper credits" }
           if (-not (Test-Path "$unpacked/app-update.yml")) { throw "Auto-updater config missing" }
           if (-not (Test-Path "$unpacked/app-update.yml")) { throw "Auto-updater feed not included in packaged app" }
       - name: Publish setup and auto-update manifest on GitHub
@@ -114,10 +134,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $repo = $env:GITHUB_REPOSITORY
-          $tag = "v0.3.4"
+          $tag = "v0.3.4.5"
           $files = @(
-            "dist/ApexAI-Setup-0.3.4-x64.exe",
-            "dist/ApexAI-Portable-0.3.4-x64.exe",
+            "dist/ApexAI-Setup-0.3.4.5-x64.exe",
+            "dist/ApexAI-Portable-0.3.4.5-x64.exe",
             "dist/latest.yml"
           )
           $files += @(Get-ChildItem "dist/*.blockmap" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
@@ -125,7 +145,7 @@ jobs:
           if ($LASTEXITCODE -eq 0) {
             gh release upload $tag @files --repo $repo --clobber
           } else {
-            gh release create $tag @files --repo $repo --target $env:GITHUB_SHA --latest --title "Apex AI 0.3.4 — Windows" --notes "Apex AI 0.3.4: pełna przebudowa desktopu: nowy interfejs i własny ciemny pasek okna, personalizacja kolorów i tapet GT3/WEC/F1, lokalny JPG, języki PL/EN, konfiguracja widgetów Dashboardu, zapis i eksport ustawień, live telemetria ACC. Kolektor bez zmian, próbkowanie 75 Hz dopiero w 0.3.5. Aktualizacje z poprzednich wersji obsługuje electron-updater. Instalator Windows 10/11 x64 jest niepodpisany."
+            gh release create $tag @files --repo $repo --target $env:GITHUB_SHA --latest --title "Apex AI 0.3.4.5 — Windows" --notes "Apex AI 0.3.4.5: poprawki tapet i filtrów; sześć lokalnych zdjęć motorsportowych CC0 1920x1080; własny JPG/PNG/WEBP; bez zmian zbierania ACC. 75 Hz planowane na 0.3.5. Aktualizacje z poprzednich wersji obsługuje electron-updater. Instalator Windows 10/11 x64 jest niepodpisany."
           }
           if ($LASTEXITCODE -ne 0) { throw "Release failed" }
           gh release edit $tag --repo $repo --draft=false --latest
@@ -135,7 +155,7 @@ jobs:
       - name: Backup binaries and updater manifest
         uses: actions/upload-artifact@v4
         with:
-          name: ApexAI-Windows-0.3.4
+          name: ApexAI-Windows-0.3.4.5
           path: |
             desktop/dist/*.exe
             desktop/dist/latest.yml
