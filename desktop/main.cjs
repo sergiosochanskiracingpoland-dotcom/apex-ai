@@ -164,7 +164,7 @@ function createWindow() {
     app.quit(); return;
   }
   win = new BrowserWindow({
-    title:'Apex AI 0.3.2 — Race Engineer', width:1400,height:960,minWidth:850,minHeight:600,
+    title:'Apex AI 0.3.3 — Race Engineer', width:1400,height:960,minWidth:850,minHeight:600,
     backgroundColor:'#090e18',show:false,
     webPreferences:{
       nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,
@@ -206,7 +206,7 @@ function createWindow() {
     ]},
     {label:'Pomoc',submenu:[
       {label:'Repozytorium Apex AI',click:()=>shell.openExternal('https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai')},
-      {label:'O programie',click:()=>dialog.showMessageBox(win,{type:'info',message:'Apex AI 0.3.2',detail:'Nowy interfejs, automatyczna biblioteka stintów i pełny podgląd zapisanej telemetrii. Rejestracja ACC działa w tle; uruchamianie gry z aplikacji pojawi się później.'})}
+      {label:'O programie',click:()=>dialog.showMessageBox(win,{type:'info',message:'Apex AI 0.3.3',detail:'Nowy interfejs, automatyczna biblioteka stintów i pełny podgląd zapisanej telemetrii. Rejestracja ACC działa w tle; uruchamianie gry z aplikacji pojawi się później.'})}
     ]}
   ]));
 }
