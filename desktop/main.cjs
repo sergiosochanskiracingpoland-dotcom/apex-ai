@@ -1,236 +1,243 @@
 'use strict';
-const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron');
-const { autoUpdater } = require('electron-updater');
-const { spawn } = require('node:child_process');
-const path = require('node:path');
-const fs = require('node:fs');
-const sessionLibrary = require('./session-library.cjs');
+const {app,BrowserWindow,Menu,shell,dialog,ipcMain,nativeImage}=require('electron');
+const {autoUpdater}=require('electron-updater');
+const {spawn}=require('node:child_process');
+const path=require('node:path');
+const fs=require('node:fs');
+const library=require('./session-library.cjs');
+const preferences=require('./preferences.cjs');
 
-const resources = app.isPackaged ? process.resourcesPath : __dirname;
-const dashboardPath = app.isPackaged
-  ? path.join(resources, 'dashboard', 'index.html')
-  : path.resolve(__dirname, '..', 'archive', '0.2.15', 'index.html');
-const bridgePath = app.isPackaged
-  ? path.join(resources, 'dashboard', 'bridge.js')
-  : path.join(__dirname, 'bridge.js');
-const shellStylePath = app.isPackaged
-  ? path.join(resources, 'dashboard', 'shell.css')
-  : path.join(__dirname, 'shell.css');
-const collectorPath = app.isPackaged
-  ? path.join(resources, 'collector', 'ApexCollector.exe')
-  : path.join(__dirname, 'collector', 'publish', 'ApexCollector.exe');
-let win, collector = null, outputBuffer = '';
-let currentKey = '', currentState = { code:'waiting', text:'Uruchom ACC, aby rozpocząć nagrywanie', laps:0 };
-let updateStatus = {code:'idle', text:'Sprawdzanie aktualizacji po uruchomieniu'};
-let updateTimer = null, isChecking = false;
-let sessionsDir = '';
-const MAX_FILE_BYTES = 70 * 1024 * 1024;
-const safeKey = /^acc_\d{8}_\d{6}_\d{4,6}$/;
+const resources=app.isPackaged?process.resourcesPath:__dirname;
+const uiFile=path.join(resources,'ui','index.html');
+const collectorFile=app.isPackaged?path.join(resources,'collector','ApexCollector.exe'):
+  path.join(__dirname,'collector','publish','ApexCollector.exe');
 
-function send(channel, data) {
-  if (win && !win.isDestroyed() && !win.webContents.isDestroyed())
-    win.webContents.send(channel, data);
+let win=null,collector=null,outputBuffer='',sessionsDir='',prefsDir='';
+let currentKey='';
+let collectorState={code:'waiting',text:'ACC not running',laps:0};
+let updateState={code:'idle',text:'Checking for updates shortly'};
+let isChecking=false,updateReady=false,updateTimer=null;
+const VALID_KEY=/^acc_\d{8}_\d{6}_\d{4,6}$/;
+const UPDATE_HOURS=4;
+
+function send(channel,message){
+  if(win&&!win.isDestroyed()&&!win.webContents.isDestroyed())win.webContents.send(channel,message);
 }
-function setCollector(code, text, extras = {}) {
-  currentState = { ...currentState, code, text, ...extras };
-  send('apex:collector', { ...currentState, sessionKey:currentKey });
+function collectorUpdate(code,text,other={}){
+  collectorState={...collectorState,code,text,...other};
+  send('apex:collector',{...collectorState,sessionKey:currentKey});
 }
-function setUpdate(code, text) {
-  updateStatus = { code, text };
-  send('apex:updates', updateStatus);
+function updaterUpdate(code,text){
+  updateState={code,text};
+  send('apex:updates',updateState);
 }
-function keyPaths(key) {
-  if (!safeKey.test(key)) return null;
-  return {
-    laps: path.join(sessionsDir, key + '_laps.csv'),
-    samples: path.join(sessionsDir, key + '_samples.csv')
-  };
-}
-function latestSession() { return sessionLibrary.latestSessionKey(sessionsDir); }
-function csvSnapshot(file) {
-  const stat = fs.statSync(file);
-  if (stat.size > MAX_FILE_BYTES) throw new Error('Sesja jest za duża (>70 MB).');
-  let csv = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/,'');
-  const lastNewline = csv.lastIndexOf('\n');
-  if (lastNewline < 0) throw new Error('Plik CSV nie ma pełnego wiersza.');
-  if (lastNewline < csv.length-1) csv = csv.slice(0,lastNewline+1);
-  return csv;
-}
-async function loadLatest() {
-  const key = currentKey || latestSession();
-  const pair = keyPaths(key);
-  if (!pair || !fs.existsSync(pair.laps) || !fs.existsSync(pair.samples)) return null;
-  const laps = csvSnapshot(pair.laps), samples = csvSnapshot(pair.samples);
-  if (laps.trim().split('\n').length < 2 || samples.trim().split('\n').length < 100) return null;
-  return { key, laps, samples };
-}
-function handleCollectorLine(line) {
-  const parts = line.trim().split('|');
-  const tag = parts[0], value = parts[1] || '';
-  if (tag === 'STATE') {
-    setCollector(value, parts.slice(2).join('|') || value);
-  } else if (tag === 'SESSION' && safeKey.test(value)) {
-    currentKey = value;
-    setCollector('recording', 'Nagrywanie sesji ACC', {laps:0});
-  } else if (tag === 'LAP') {
-    const lap = Number(value);
-    setCollector('recording', 'Okrążenie ' + (Number.isFinite(lap)?lap:'') + ' zapisane — odświeżam analizę', {laps:lap});
-    send('apex:collector', { ...currentState, sessionKey:currentKey, refresh:true });
-  } else if (tag === 'CLOSED') {
-    send('apex:collector', { ...currentState, sessionKey:currentKey, refresh:true });
-    setCollector('connected', 'Sesja zakończona; dane zapisane');
-  } else if (tag === 'ERROR') {
-    setCollector('warning', 'Ponawiam odczyt ACC: '+value.slice(0,150));
+function handleLine(line){
+  const parts=line.trim().split('|'),event=parts[0],detail=parts[1]||'';
+  if(event==='STATE')collectorUpdate(detail,parts.slice(2).join('|'));
+  else if(event==='SESSION'&&VALID_KEY.test(detail)){
+    currentKey=detail;collectorUpdate('recording','Recording ACC telemetry',{laps:0});
+  }else if(event==='LAP'){
+    const lap=Number(detail);
+    collectorUpdate('recording','Lap '+(Number.isFinite(lap)?lap:'')+' recorded',{laps:lap});
+    send('apex:collector',{...collectorState,sessionKey:currentKey,refresh:true});
+  }else if(event==='CLOSED'){
+    send('apex:collector',{...collectorState,sessionKey:currentKey,refresh:true});
+    collectorUpdate('connected','Stint archived to History');
+  }else if(event==='ERROR'){
+    collectorUpdate('error','ACC telemetry: '+detail.slice(0,150));
   }
 }
-function consumeOutput(chunk) {
-  outputBuffer += chunk.toString('utf8');
-  let pos;
-  while ((pos = outputBuffer.indexOf('\n')) >= 0) {
-    const line = outputBuffer.slice(0,pos);
-    outputBuffer = outputBuffer.slice(pos+1);
-    if (line.trim()) handleCollectorLine(line);
+function startCollector(){
+ if(!fs.existsSync(collectorFile)){
+  collectorUpdate('error','ApexCollector.exe missing from this installation');return;
+ }
+ try{
+  collector=spawn(collectorFile,[],{windowsHide:true,stdio:['ignore','pipe','pipe'],
+   env:{...process.env,APEX_SESSIONS_DIR:sessionsDir}});
+  collector.stdout.on('data',chunk=>{
+   outputBuffer+=chunk.toString('utf8');
+   let n;
+   while((n=outputBuffer.indexOf('\n'))>=0){
+    const line=outputBuffer.slice(0,n);outputBuffer=outputBuffer.slice(n+1);
+    if(line.trim())handleLine(line);
+   }
+   if(outputBuffer.length>20000)outputBuffer='';
+  });
+  collector.stderr.on('data',chunk=>collectorUpdate('error',chunk.toString('utf8').slice(0,160)));
+  collector.on('error',e=>collectorUpdate('error','Failed to start ACC collector: '+e.message));
+  collector.on('exit',code=>{
+   collector=null;
+   if(!app.isQuitting&&code!==0)collectorUpdate('error','ACC collector exited with code '+code);
+  });
+ }catch(e){collectorUpdate('error',String(e.message||e));}
+}
+function stopCollector(){if(collector){try{collector.kill();}catch{}collector=null;}}
+function checkUpdates(){
+ if(!app.isPackaged){updaterUpdate('development','Updater works in installed builds');return;}
+ if(isChecking||updateReady)return;
+ isChecking=true;updaterUpdate('checking','Checking for updates…');
+ autoUpdater.checkForUpdates().catch(e=>updaterUpdate('error','Update check failed: '+e.message.slice(0,180)))
+  .finally(()=>{isChecking=false;});
+}
+function installUpdate(){
+ if(!updateReady)return false;
+ stopCollector();
+ setImmediate(()=>autoUpdater.quitAndInstall(false,true));
+ return true;
+}
+function configureUpdater(){
+ autoUpdater.autoDownload=true;
+ autoUpdater.autoInstallOnAppQuit=true;
+ autoUpdater.allowPrerelease=false;
+ autoUpdater.on('checking-for-update',()=>updaterUpdate('checking','Checking for updates…'));
+ autoUpdater.on('update-not-available',()=>updaterUpdate('current','Apex AI '+app.getVersion()+' is up to date'));
+ autoUpdater.on('update-available',info=>updaterUpdate('available','Version '+info.version+' available — downloading'));
+ autoUpdater.on('download-progress',info=>updaterUpdate('downloading','Downloading '+Math.round(info.percent)+'%'));
+ autoUpdater.on('error',e=>updaterUpdate('error','Update error: '+e.message.slice(0,180)));
+ autoUpdater.on('update-downloaded',async info=>{
+  updateReady=true;
+  updaterUpdate('ready','Version '+info.version+' ready to install');
+  if(!win||win.isDestroyed())return;
+  const answer=await dialog.showMessageBox(win,{type:'question',title:'Apex AI update',
+   message:'Apex AI '+info.version+' is ready.',
+   detail:'Install now? Your current ACC session will close. If you choose Later, the update installs after quitting.',
+   buttons:['Install and restart','Later'],defaultId:1,cancelId:1});
+  if(answer.response===0)installUpdate();
+ });
+ setTimeout(checkUpdates,12000);
+ updateTimer=setInterval(checkUpdates,UPDATE_HOURS*3600*1000);
+}
+function sampleFromFile(key){
+ if(!VALID_KEY.test(key))return null;
+ const file=path.join(sessionsDir,key+'_samples.csv');
+ if(!fs.existsSync(file))return null;
+ const f=fs.openSync(file,'r');
+ try{
+  const stat=fs.fstatSync(f);
+  if(stat.size<150)return null;
+  const length=Math.min(stat.size,65536),buf=Buffer.alloc(length);
+  fs.readSync(f,buf,0,length,stat.size-length);
+  const text=buf.toString('utf8');
+  const lines=text.split(/\r?\n/);
+  // Last line may be partial while the collector is writing.
+  let line='';
+  for(let i=lines.length-1;i>=0;i--){
+   const part=lines[i];if(part&&part.startsWith('20')&&part.split(',').length===30){line=part;break;}
   }
-  if (outputBuffer.length > 20000) outputBuffer = '';
-}
-function startCollector() {
-  if (!fs.existsSync(collectorPath)) {
-    setCollector('error','Brak ApexCollector.exe — instalacja aplikacji jest niekompletna.');
-    return;
+  if(!line)return null;
+  const cols=line.split(',');
+  const names=['timestamp_utc','completed_laps','sector_index','lap_progress','speed_kmh','gas','brake',
+    'gear','rpm','fuel','tyre_fl','tyre_fr','tyre_rl','tyre_rr','pressure_fl','pressure_fr',
+    'pressure_rl','pressure_rr','steer_input','g_x','g_y','g_z','tc_action','abs_action',
+    'tyre_wear_fl_raw','tyre_wear_fr_raw','tyre_wear_rl_raw','tyre_wear_rr_raw','in_pit','physics_packet_id'];
+  const sample={};
+  for(let i=0;i<names.length;i++){
+   const value=Number(cols[i]);
+   sample[names[i]]=i===0?cols[i]:(cols[i]===''||!Number.isFinite(value)?null:value);
   }
-  try {
-    collector = spawn(collectorPath, [], {
-      windowsHide:true, stdio:['ignore','pipe','pipe'],
-      env:{ ...process.env, APEX_SESSIONS_DIR:sessionsDir }
-    });
-    collector.stdout.on('data', consumeOutput);
-    collector.stderr.on('data', chunk => {
-      const text = chunk.toString('utf8').trim();
-      if (text) setCollector('warning',text.slice(0,160));
-    });
-    collector.on('error', error => setCollector('error','Nie można uruchomić kolektora: '+error.message));
-    collector.on('exit', code => {
-      collector=null;
-      if (!app.isQuitting && code !== 0) setCollector('error','Rejestrator został zatrzymany (kod '+code+').');
-    });
-  } catch (error) {
-    setCollector('error',String(error.message));
-  }
+  if(!Number.isFinite(Date.parse(sample.timestamp_utc)))return null;
+  return sample;
+ }finally{fs.closeSync(f);}
 }
-function stopCollector() {
-  if (!collector) return;
-  try { collector.kill(); } catch {}
-  collector = null;
+function liveTelemetry(){
+ const active=collectorState.code==='recording'&&VALID_KEY.test(currentKey);
+ if(!active)return {active:false,key:currentKey};
+ try{
+  const sample=sampleFromFile(currentKey);
+  const age=sample?Date.now()-Date.parse(sample.timestamp_utc):Infinity;
+  if(age<0||age>4000)return {active:false,key:currentKey};
+  return {active:true,key:currentKey,sample};
+ }catch{return {active:false,key:currentKey};}
 }
-function checkUpdates() {
-  if (!app.isPackaged) { setUpdate('development','Sprawdzanie aktualizacji działa po instalacji wersji Setup.'); return; }
-  if (isChecking) return;
-  isChecking=true;
-  setUpdate('checking','Sprawdzam aktualizacje…');
-  autoUpdater.checkForUpdates()
-    .catch(error => setUpdate('error','Nie udało się sprawdzić aktualizacji: '+error.message.slice(0,160)))
-    .finally(() => { isChecking=false; });
+function trustedExternal(url){
+ try{
+  const u=new URL(url);
+  if(u.protocol!=='https:')return false;
+  return ['github.com','commons.wikimedia.org','creativecommons.org'].includes(u.hostname);
+ }catch{return false;}
 }
-function configureUpdater() {
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.allowPrerelease = false;
-  autoUpdater.on('checking-for-update', () => setUpdate('checking','Sprawdzam aktualizacje…'));
-  autoUpdater.on('update-not-available', () => setUpdate('current','Masz aktualną wersję '+app.getVersion()));
-  autoUpdater.on('update-available', data => setUpdate('available','Dostępna wersja '+data.version+' — pobieranie…'));
-  autoUpdater.on('download-progress', data => setUpdate('downloading','Pobieranie aktualizacji: '+Math.round(data.percent)+'%'));
-  autoUpdater.on('error', error => setUpdate('error','Aktualizacja nie powiodła się: '+error.message.slice(0,150)));
-  autoUpdater.on('update-downloaded', async data => {
-    setUpdate('ready','Wersja '+data.version+' pobrana. Gotowa do instalacji.');
-    if (!win || win.isDestroyed()) return;
-    const response = await dialog.showMessageBox(win, {
-      type:'question', title:'Aktualizacja Apex AI',
-      message:'Nowa wersja Apex AI '+data.version+' została pobrana.',
-      detail:'Zainstalować teraz? Bieżąca sesja zostanie zamknięta. Jeżeli wybierzesz „Później”, aktualizacja zainstaluje się po zakończeniu pracy.',
-      buttons:['Zainstaluj i uruchom ponownie','Później'],defaultId:1,cancelId:1,noLink:true
-    });
-    if (response.response === 0) {
-      stopCollector();
-      setImmediate(() => autoUpdater.quitAndInstall(false, true));
-    }
-  });
-  // Do not block the first application start with a network request.
-  setTimeout(checkUpdates, 12000);
-  updateTimer = setInterval(checkUpdates, 4 * 60 * 60 * 1000);
+function createWindow(){
+ if(!fs.existsSync(uiFile)){
+  dialog.showErrorBox('Apex AI','Missing desktop UI resources. Reinstall Apex AI.');app.quit();return;
+ }
+ win=new BrowserWindow({
+  title:'Apex AI 0.3.4',width:1450,height:960,minWidth:900,minHeight:650,
+  show:false,frame:false,backgroundColor:'#090a0f',autoHideMenuBar:true,
+  webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,
+   preload:path.join(__dirname,'preload.cjs')}
+ });
+ Menu.setApplicationMenu(null);
+ win.webContents.setWindowOpenHandler(({url})=>{
+  if(trustedExternal(url))void shell.openExternal(url);
+  return {action:'deny'};
+ });
+ win.webContents.on('will-navigate',(e,url)=>{
+  if(url!==win.webContents.getURL())e.preventDefault();
+ });
+ win.once('ready-to-show',()=>win.show());
+ win.loadFile(uiFile);
+ win.webContents.on('did-finish-load',()=>{
+  send('apex:collector',{...collectorState,sessionKey:currentKey});
+  send('apex:updates',updateState);
+ });
 }
-function createWindow() {
-  if (!fs.existsSync(dashboardPath) || !fs.existsSync(bridgePath) || !fs.existsSync(shellStylePath)) {
-    dialog.showErrorBox('Apex AI','Brak plików aplikacji. Zainstaluj program ponownie.');
-    app.quit(); return;
-  }
-  win = new BrowserWindow({
-    title:'Apex AI 0.3.3 — Race Engineer', width:1400,height:960,minWidth:850,minHeight:600,
-    backgroundColor:'#090e18',show:false,
-    webPreferences:{
-      nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,
-      preload:path.join(__dirname,'preload.cjs')
-    }
-  });
-  win.webContents.setWindowOpenHandler(({url}) => {
-    if (/^https:\/\//i.test(url) && url.startsWith('https://github.com/'))
-      shell.openExternal(url);
-    return {action:'deny'};
-  });
-  win.webContents.on('will-navigate',(event,url) => {
-    if (url !== win.webContents.getURL()) event.preventDefault();
-  });
-  // Show the window after the new desktop shell is injected, avoiding a legacy UI flash.
-  win.webContents.on('did-finish-load', async () => {
-    try {
-      await win.webContents.insertCSS(fs.readFileSync(shellStylePath,'utf8'));
-      await win.webContents.executeJavaScript(fs.readFileSync(bridgePath,'utf8'));
-      if (!win.isVisible()) win.show();
-      send('apex:collector',{...currentState,sessionKey:currentKey,refresh:true});
-      send('apex:updates',updateStatus);
-    } catch (error) {
-      dialog.showErrorBox('Apex AI — interfejs',error.message);
-    }
-  });
-  win.loadFile(dashboardPath);
-  Menu.setApplicationMenu(Menu.buildFromTemplate([
-    {label:'Apex AI',submenu:[
-      {label:'Odśwież',accelerator:'F5',click:()=>win.reload()},
-      {label:'Otwórz folder sesji ACC',click:()=>shell.openPath(sessionsDir)},
-      {type:'separator'},
-      {label:'Sprawdź aktualizacje',click:checkUpdates},
-      {type:'separator'},{label:'Zamknij',role:'quit'}
-    ]},
-    {label:'Widok',submenu:[
-      {role:'zoomIn'},{role:'zoomOut'},{role:'resetZoom'},
-      {type:'separator'},{role:'togglefullscreen'}
-    ]},
-    {label:'Pomoc',submenu:[
-      {label:'Repozytorium Apex AI',click:()=>shell.openExternal('https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai')},
-      {label:'O programie',click:()=>dialog.showMessageBox(win,{type:'info',message:'Apex AI 0.3.3',detail:'Nowy interfejs, automatyczna biblioteka stintów i pełny podgląd zapisanej telemetrii. Rejestracja ACC działa w tle; uruchamianie gry z aplikacji pojawi się później.'})}
-    ]}
-  ]));
-}
-ipcMain.handle('apex:load-latest', async () => {
-  try { return await loadLatest(); }
-  catch (error) { return {error:error.message}; }
+function wrapError(f){return async(...args)=>{try{return await f(...args);}catch(e){return {error:String(e.message||e)};}};}
+ipcMain.handle('apex:list-sessions',wrapError(()=>library.listSessions(sessionsDir)));
+ipcMain.handle('apex:load-session',wrapError((_evt,key)=>library.loadSession(sessionsDir,key)));
+ipcMain.handle('apex:load-latest',wrapError(()=>{
+ const key=library.latestSessionKey(sessionsDir);
+ return key?library.loadSession(sessionsDir,key):null;
+}));
+ipcMain.handle('apex:get-live',wrapError(liveTelemetry));
+ipcMain.handle('apex:get-status',()=>({collector:collectorState,updates:updateState,version:app.getVersion()}));
+ipcMain.handle('apex:check-updates',()=>{checkUpdates();return true;});
+ipcMain.handle('apex:install-update',()=>installUpdate());
+ipcMain.handle('apex:window-action',(_e,action)=>{
+ if(!win||win.isDestroyed())return false;
+ if(action==='minimize')win.minimize();
+ else if(action==='maximize'){if(win.isMaximized())win.unmaximize();else win.maximize();}
+ else if(action==='close')win.close();
+ else return false;
+ return true;
 });
-ipcMain.handle('apex:list-sessions', async () => {
-  try { return sessionLibrary.listSessions(sessionsDir); }
-  catch (e) { return {error:e.message}; }
-});
-ipcMain.handle('apex:load-session', async (_event,key) => {
-  try { return sessionLibrary.loadSession(sessionsDir,key); }
-  catch (e) { return {error:e.message}; }
-});
-ipcMain.handle('apex:check-updates',() => {checkUpdates();return true;});
-app.whenReady().then(() => {
-  sessionsDir=path.join(app.getPath('documents'),'ApexAI','sessions');
-  fs.mkdirSync(sessionsDir,{recursive:true});
-  currentKey=latestSession();
-  createWindow();
-  startCollector();
-  configureUpdater();
-  app.on('activate',()=>{if (BrowserWindow.getAllWindows().length===0)createWindow();});
+ipcMain.handle('apex:open-folder',wrapError(()=>shell.openPath(sessionsDir)));
+ipcMain.handle('apex:prefs-get',wrapError(()=>preferences.read(prefsDir)));
+ipcMain.handle('apex:prefs-save',wrapError((_event,values)=>preferences.write(prefsDir,values)));
+ipcMain.handle('apex:prefs-wallpaper',wrapError(async()=>{
+ const result=await dialog.showOpenDialog(win,{title:'Select Apex AI wallpaper',
+  properties:['openFile'],filters:[{name:'Images',extensions:['jpg','jpeg','png','webp']}]});
+ if(result.canceled||!result.filePaths.length)return null;
+ const data=preferences.fromImage(result.filePaths[0]);
+ if(nativeImage.createFromDataURL(data).isEmpty())throw Error('Cannot decode selected wallpaper.');
+ return {data};
+}));
+ipcMain.handle('apex:prefs-export',wrapError(async()=>{
+ const saved=preferences.read(prefsDir);
+ const selection=await dialog.showSaveDialog(win,{title:'Export Apex AI settings',
+  defaultPath:'ApexAI-preferences.json',filters:[{name:'JSON',extensions:['json']}]});
+ if(selection.canceled||!selection.filePath)return null;
+ fs.writeFileSync(selection.filePath,JSON.stringify(saved,null,2),'utf8');
+ return {path:selection.filePath};
+}));
+ipcMain.handle('apex:prefs-import',wrapError(async()=>{
+ const selection=await dialog.showOpenDialog(win,{title:'Import Apex AI settings',
+  properties:['openFile'],filters:[{name:'JSON',extensions:['json']}]});
+ if(selection.canceled||!selection.filePaths.length)return null;
+ const file=selection.filePaths[0],stat=fs.statSync(file);
+ if(stat.size>11_500_000)throw Error('Settings file is too large.');
+ const incoming=JSON.parse(fs.readFileSync(file,'utf8'));
+ const cfg=preferences.write(prefsDir,incoming);
+ return {preferences:cfg};
+}));
+app.whenReady().then(()=>{
+ sessionsDir=path.join(app.getPath('documents'),'ApexAI','sessions');
+ prefsDir=path.join(app.getPath('userData'),'settings');
+ fs.mkdirSync(sessionsDir,{recursive:true});
+ currentKey=library.latestSessionKey(sessionsDir);
+ createWindow();
+ startCollector();
+ configureUpdater();
+ app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 });
 app.on('before-quit',()=>{app.isQuitting=true;stopCollector();if(updateTimer)clearInterval(updateTimer);});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
