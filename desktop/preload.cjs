@@ -7,7 +7,7 @@ function listen(channel, callback) {
   return () => ipcRenderer.removeListener(channel, handler);
 }
 contextBridge.exposeInMainWorld('apexDesktop', Object.freeze({
-  version: '0.3.2',
+  version: '0.3.3',
   loadLatest: () => ipcRenderer.invoke('apex:load-latest'),
   listSessions: () => ipcRenderer.invoke('apex:list-sessions'),
   loadSession: (key) => ipcRenderer.invoke('apex:load-session',key),
