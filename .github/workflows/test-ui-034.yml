@@ -1,0 +1,29 @@
+name: Apex AI 0.3.4 UI tests
+on:
+  push:
+    branches:
+      - feature/apex-0.3.4-redesign
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ui-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm install --no-audit --no-fund
+      - name: Source and renderer regression tests
+        run: |
+          node --check main.cjs
+          node --check preload.cjs
+          node --check ui/app.js
+          node --check ui/analysis.js
+          node --check preferences.cjs
+          npm test
