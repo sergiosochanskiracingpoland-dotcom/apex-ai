@@ -1,37 +1,33 @@
 # Apex AI — Race Intelligence
 
-## Desktop 0.3.4.5
+## Windows desktop 0.3.5
 
-**[Strona instalatora Windows](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
+**[Pobierz na oficjalnej stronie Apex AI](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
 
-Gotowe wydanie Windows:
-[ApexAI-Setup-0.3.4.5-x64.exe](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.5-beta.5/ApexAI-Setup-0.3.4.5-x64.exe)
+Bezpośredni instalator Windows:
+[ApexAI-Setup-0.3.5-x64.exe](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.5/ApexAI-Setup-0.3.5-x64.exe)
 
-### Poprawka 0.3.4.5
+### Co nowego w 0.3.5?
 
-- Nowy, niezależny interfejs desktop (bez osadzania UI 0.2.15).
-- Ciemny, własny pasek okna; estetyka premium, rozmyte i przezroczyste panele.
-- Kreator pierwszego uruchomienia oraz języki **polski i angielski**.
-- Dowolne akcenty kolorystyczne, motywy, nazwa kierowcy i ustawienia menu.
-- **6 lokalnych tapet motorsportowych CC0 16:9 (1920×1080)**, działających bez internetu. Naprawione nakładanie warstw, rozmycie, jasność i podgląd na żywo; własny JPG/PNG/WEBP nadal dostępny.
-- Dashboard z wybieranymi i przestawianymi widżetami.
-- Lokalny zapis i eksport/import wszystkich preferencji.
-- Nowy ekran **Na torze** z rzeczywistą telemetrią ACC pobieraną podczas jazdy.
-- Historia i pełne raporty z zapisanych stintów, w tym szacunkowe strefy hamowania, porównania prędkości, paliwo, opony, elektronikę i jakość danych.
-- Centrum aktualizacji w zakładce **Ustawienia** (dół menu bocznego).
+**Eksperymentalna rejestracja telemetrii ACC z celem 75 Hz**, oparta na harmonogramie według monotonicznego zegara Windows/QPC zamiast pętli odczekującej 20 ms. Wynik rzeczywisty zależy od czasu dostarczania pakietów gry i planowania pracy procesu przez Windows — cel nie jest gwarancją.
 
-**Zbieranie danych ACC pozostaje bez zmian od 0.3.3.** Test przejścia na docelowe 75 Hz jest zaplanowany na **0.3.5**. Wynik poprzedniego testu wynosił efektywnie 32,3 Hz, więc sam wzrost żądanej częstotliwości nie jest gwarancją 75 Hz.
+**Diagnostyka w Dashboard / Pełny raport → Jakość telemetrii:**
+- efektywne Hz zapisanych próbek podczas jazdy;
+- liczba unikalnych nowych pakietów ACC na sekundę i odsetek powtarzanych pakietów;
+- realizacja celu 75 Hz, mediana i 95. percentyl opóźnień, liczba dużych luk i przestojów.
 
-Dokumentacja: [Instrukcja 0.3.4.5](desktop/README.md) · [Kod aplikacji](desktop/) · [Wydania](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases)
+W teście poprzedniej wersji 0.3.4.5 użytkownik potwierdził 18/18 funkcji w 6 okrążeniach, ale efektywne próbkowanie wynosiło **32,3 Hz**. W 0.3.5 porównujemy ten wynik z rzeczywistym nowym stintem, nie deklarujemy osiągnięcia 75 Hz przed testem.
 
-### Dane lokalne i poprzednie wersje
+### Wszystko, co działało wcześniej, zostaje
 
-- Sesje z ACC: `Dokumenty\ApexAI\sessions`.
-- Preferencje użytkownika: standardowy katalog `userData/settings/preferences.json` aplikacji Electron.
-- [Archiwalny dashboard 0.2.15](archive/0.2.15/index.html)
-- [Archiwalny rejestrator PowerShell](acc_collector/)
+- Personalizowany interfejs w językach PL / EN i własny pasek okna.
+- Sześć **lokalnych tapet motorsportowych CC0** w 16:9 i własny JPG/PNG/WEBP, rozmycie/jasność/nasycenie/widoczność.
+- Konfigurowalny Dashboard, statystyki, analiza hamowań i porównania.
+- Automatyczne wykrywanie ACC i kolektor działający w tle.
+- Historia stintów, podgląd telemetrii „Na torze”, eksport/import ustawień i aktualizator.
 
-Apex AI w tej wersji nie ma kont użytkowników, subskrypcji ani serwera zbierającego telemetrię. Instalator Windows jest niepodpisany certyfikatem, więc Windows SmartScreen może wyświetlić ostrzeżenie.
+**Dane zachowywane podczas aktualizacji:** `Dokumenty\ApexAI\sessions`, ustawienia w katalogu danych użytkownika Electron.
 
+[Pełna dokumentacja i test 0.3.5](desktop/README.md) · [Wszystkie wydania](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases)
 
-**Wersjonowanie:** wydanie nazywa się 0.3.4.5, a jego wewnętrzny identyfikator SemVer to `0.3.5-beta.5`. Ma to umożliwić kolejną aktualizację do stabilnej `0.3.5` z próbą 75 Hz. Wersja 0.3.4 może wymagać jednorazowej ręcznej instalacji poprawki tapet.
+Instalator Windows 10/11 x64 nie jest podpisany certyfikatem, więc SmartScreen może ostrzec o nieznanym wydawcy.
