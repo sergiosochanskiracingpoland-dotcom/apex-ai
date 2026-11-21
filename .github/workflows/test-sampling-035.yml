@@ -1,0 +1,35 @@
+name: Apex AI 0.3.5 sampling checks
+on:
+  push:
+    branches:
+      - feature/apex-0.3.5-sampling-diagnostics
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sampling-regression:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Compile 75Hz Windows recorder
+        run: dotnet build collector/ApexCollector.csproj -c Release -r win-x64
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify UI scripts and sampling diagnostics
+        shell: pwsh
+        run: |
+          node --check ui/app.js
+          node --check ui/sampling.js
+          node --check ui/analysis.js
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw "Apex 0.3.5 tests failed" }
