@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   windows-build:
-    name: Build and publish Windows 0.3.4.5
+    name: Build and publish Windows 0.3.5
     runs-on: windows-latest
     timeout-minutes: 45
     defaults:
@@ -49,6 +49,7 @@ jobs:
           node --check preload.cjs
           node --check ui/app.js
           node --check ui/analysis.js
+          node --check ui/sampling.js
           node --check preferences.cjs
           node --check session-library.cjs
           npm test
@@ -79,19 +80,19 @@ jobs:
           if (-not (Test-Path "dist/latest.yml")) {
             # electron-builder 26 can skip upload metadata when --publish never.
             # Generate the same sha512/size keys from the verified NSIS installer.
-            $setup = "dist/ApexAI-Setup-0.3.4.5-x64.exe"
+            $setup = "dist/ApexAI-Setup-0.3.5-x64.exe"
             if (-not (Test-Path $setup)) { throw "Installer missing" }
             $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $setup))
             $hash = [Convert]::ToBase64String([System.Security.Cryptography.SHA512]::HashData($bytes))
             $size = $bytes.LongLength
             $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             $text = @"
-          version: 0.3.5-beta.5
+          version: 0.3.5
           files:
-            - url: ApexAI-Setup-0.3.4.5-x64.exe
+            - url: ApexAI-Setup-0.3.5-x64.exe
               sha512: $hash
               size: $size
-          path: ApexAI-Setup-0.3.4.5-x64.exe
+          path: ApexAI-Setup-0.3.5-x64.exe
           sha512: $hash
           releaseDate: $date
           "@
@@ -101,24 +102,24 @@ jobs:
         shell: pwsh
         run: |
           $expected = @(
-            "dist/ApexAI-Setup-0.3.4.5-x64.exe",
-            "dist/ApexAI-Portable-0.3.4.5-x64.exe",
+            "dist/ApexAI-Setup-0.3.5-x64.exe",
+            "dist/ApexAI-Portable-0.3.5-x64.exe",
             "dist/latest.yml"
           )
           foreach ($file in $expected) {
             if (-not (Test-Path $file)) { throw "Missing release file: $file" }
             Write-Output "Verified $file"
           }
-          if ((Get-Item "dist/ApexAI-Setup-0.3.4.5-x64.exe").Length -lt 10000000) {
+          if ((Get-Item "dist/ApexAI-Setup-0.3.5-x64.exe").Length -lt 10000000) {
             throw "Installer unexpectedly small"
           }
           $manifest = Get-Content "dist/latest.yml" -Raw
-          if ($manifest -notmatch "ApexAI-Setup-0.3.4.5-x64.exe" -or $manifest -notmatch "sha512:") {
+          if ($manifest -notmatch "ApexAI-Setup-0.3.5-x64.exe" -or $manifest -notmatch "sha512:") {
             throw "latest.yml is missing installer or hash"
           }
           $unpacked = "dist/win-unpacked/resources"
           if (-not (Test-Path "$unpacked/collector/ApexCollector.exe")) { throw "Collector not included in packaged app" }
-          foreach ($ui in @("index.html", "app.js", "analysis.js", "style.css")) {
+          foreach ($ui in @("index.html", "app.js", "analysis.js", "sampling.js", "style.css")) {
             if (-not (Test-Path "$unpacked/ui/$ui")) { throw "Missing redesigned UI resource: $ui" }
           }
           foreach ($id in @("gt3", "gt3b", "wec", "wecb", "f1", "f1b")) {
@@ -133,10 +134,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $repo = $env:GITHUB_REPOSITORY
-          $tag = "v0.3.5-beta.5"
+          $tag = "v0.3.5"
           $files = @(
-            "dist/ApexAI-Setup-0.3.4.5-x64.exe",
-            "dist/ApexAI-Portable-0.3.4.5-x64.exe",
+            "dist/ApexAI-Setup-0.3.5-x64.exe",
+            "dist/ApexAI-Portable-0.3.5-x64.exe",
             "dist/latest.yml"
           )
           $files += @(Get-ChildItem "dist/*.blockmap" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
@@ -144,7 +145,7 @@ jobs:
           if ($LASTEXITCODE -eq 0) {
             gh release upload $tag @files --repo $repo --clobber
           } else {
-            gh release create $tag @files --repo $repo --target $env:GITHUB_SHA --latest --title "Apex AI 0.3.4.5 — Windows" --notes "Apex AI 0.3.4.5: poprawki tapet i filtrów; sześć lokalnych zdjęć motorsportowych CC0 1920x1080; własny JPG/PNG/WEBP; bez zmian zbierania ACC. 75 Hz planowane na 0.3.5. Aktualizacje z poprzednich wersji obsługuje electron-updater. Instalator Windows 10/11 x64 jest niepodpisany."
+            gh release create $tag @files --repo $repo --target $env:GITHUB_SHA --latest --title "Apex AI 0.3.5 — Windows" --notes "Apex AI 0.3.5: eksperymentalny rejestrator ACC 75Hz z precyzyjnym harmonogramem QPC; diagnostyka rzeczywistych Hz i unikalnych pakietów gry oraz powtórzeń i opóźnień. Wszystkie funkcje 0.3.4.5 zachowane. Aktualizacje z poprzednich wersji obsługuje electron-updater. Instalator Windows 10/11 x64 jest niepodpisany."
           }
           if ($LASTEXITCODE -ne 0) { throw "Release failed" }
           gh release edit $tag --repo $repo --draft=false --latest
@@ -154,7 +155,7 @@ jobs:
       - name: Backup binaries and updater manifest
         uses: actions/upload-artifact@v4
         with:
-          name: ApexAI-Windows-0.3.4.5
+          name: ApexAI-Windows-0.3.5
           path: |
             desktop/dist/*.exe
             desktop/dist/latest.yml
