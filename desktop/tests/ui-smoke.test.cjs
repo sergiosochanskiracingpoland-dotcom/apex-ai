@@ -7,6 +7,7 @@ const prefs=require('../preferences.cjs');
 
 const appJS=fs.readFileSync(path.resolve(__dirname,'../ui/app.js'),'utf8');
 const analysisJS=fs.readFileSync(path.resolve(__dirname,'../ui/analysis.js'),'utf8');
+const samplingJS=fs.readFileSync(path.resolve(__dirname,'../ui/sampling.js'),'utf8');
 const sampleHeader='timestamp_utc,completed_laps,sector_index,lap_progress,speed_kmh,gas,brake,gear,rpm,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,pressure_fl,pressure_fr,pressure_rl,pressure_rr,steer_input,g_x,g_y,g_z,tc_action,abs_action,tyre_wear_fl_raw,tyre_wear_fr_raw,tyre_wear_rl_raw,tyre_wear_rr_raw,in_pit,physics_packet_id';
 function data() {
  const laps='lap,time,s1,s2,s3,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,sector_source,track,track_name,car_model,car_name\n'+
@@ -31,7 +32,7 @@ async function makeDom(config={},withStint=true) {
  let state=prefs.normalize(config);
  const saves=[];
  window.apexDesktop={
-  version:'0.3.4.5',
+  version:'0.3.5',
   getPreferences:async()=>state,
   savePreferences:async v=>{state=prefs.normalize(v);saves.push(state);return state;},
   listSessions:async()=>sessions,
@@ -49,6 +50,7 @@ async function makeDom(config={},withStint=true) {
   importPreferences:async()=>null
  };
  window.eval(analysisJS);
+ window.eval(samplingJS);
  window.eval(appJS);
  await new Promise(r=>setTimeout(r,100));
  return {window,getSaves:()=>saves};
@@ -79,6 +81,8 @@ test('Dashboard, history report and settings all render using new UI',async t=>{
  assert.match(d.querySelector('#page').textContent,/Pełny raport/);
  assert.ok(d.querySelector('[data-widget="race"]'));
  assert.ok(d.querySelector('[data-widget="quality"]'));
+ assert.match(d.querySelector('[data-widget="quality"]').textContent,/75 Hz/);
+ assert.match(d.querySelector('[data-widget="quality"]').textContent,/Unikalne odczyty ACC/);
  d.querySelector('[data-nav="settings"]').click();
  assert.ok(d.querySelector('[data-pref="language"]'));
  assert.ok(d.querySelector('[data-pref="wallpaper"]')===null);
