@@ -1,46 +1,60 @@
-# Apex AI 0.3.4.5 — poprawka tapet i wyglądu
+# Apex AI 0.3.5 — eksperyment 75 Hz
 
-## Instalacja
+Wydanie 0.3.5 skupia się **wyłącznie na rejestrowaniu i diagnostyce próbkowania ACC**. W poprzednim teście aplikacji 0.3.4.5 użytkownik potwierdził 18/18 funkcji, 6 okrążeń i efektywną częstotliwość 32,3 Hz.
 
-**[Pobierz instalator Apex AI](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
+## Zmiany
 
-Wydanie dla użytkownika nazywa się **0.3.4.5**. Electron używa wewnętrznego numeru SemVer `0.3.5-beta.5`, aby późniejsze wydanie `0.3.5` (test 75 Hz) było nadal nowsze. Z tego powodu aktualizacja z 0.3.4 może wymagać **jednorazowego ręcznego pobrania instalatora**. Nie odinstalowuj poprzedniej wersji ani nie usuwaj danych.
+- **Cel rejestratora: 75 Hz**, czyli 13,333 ms pomiędzy kolejnymi zaplanowanymi odczytami. Zastąpiono dotychczasowe `Thread.Sleep` i czas oparty na przebiegu pętli mechanizmem planowania odczytów wg monotonicznego zegara `Stopwatch`/QPC.
+- Zegar śpi przez większość oczekiwania i aktywnie czeka tylko przez ostatnie ok. 1 ms. Przy dużym opóźnieniu synchronizuje się ponownie bez sztucznego generowania zaległych próbek.
+- **Rozszerzona diagnostyka** w `Dashboard → Jakość telemetrii` oraz w pełnym raporcie History:
+  - efektywna liczba **zapisanych próbek na sekundę**, liczona z timestampów w czasie jazdy;
+  - liczba **unikalnych zmian physics_packet_id na sekundę** (odrębna od liczby zapisów, może być niższa);
+  - udział powtarzanych pakietów, realizacja celu 75 Hz;
+  - mediana / 95. percentyl odstępu, liczba opóźnień >25 ms i przerw >250 ms;
+  - najdłuższy odstęp i liczba zapisanych próbek.
+- Metadane nowych stintów zawierają `targetSamplingHz=75` i `samplingMode=deadline_qpc_75hz`.
+- Wszystkie historie w CSV pozostały w niezmienionym formacie; stare pliki można nadal otwierać.
 
-Bezpośredni plik:
-[ApexAI-Setup-0.3.4.5-x64.exe](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.5-beta.5/ApexAI-Setup-0.3.4.5-x64.exe).
+## Ograniczenia
 
-## Co naprawiono
+**75 Hz to cel, nie gwarantowana częstotliwość dostarczanych przez grę nowych pakietów.**
+Jeżeli ACC aktualizuje pamięć współdzieloną wolniej lub system opóźnia wykonywanie procesu, zobaczymy to w pomiarze. Duża liczba powtórzonych pakietów oznacza, że dalsze zwiększanie liczby odczytów nie dostarczy większej ilości unikalnych danych gry.
 
-- **Tapety w instalatorze**, bez hotlinkowania plików z Wikimedia Commons podczas używania aplikacji.
-- **6 tapet motorsportowych CC0**: dwa GT3, dwa Le Mans/endurance, dwa F1; rozmiar `1920x1080` (16:9), JPG, 85% jakości.
-- **Poprawna kolejność warstw:** zdjęcie jest widoczne za wszystkimi panelami, nie chowa się za tłem okna.
-- **Regulacja tła:** rozmycie, jasność, nasycenie i przezroczystość działają na żywo.
-- **Podgląd tapety** w Ustawieniach oraz przycisk „Przywróć ustawienia tapety”.
-- Własny plik JPG, PNG lub WEBP do 7 MB działa tak samo jak wcześniej.
-- Wsteczna zgodność z zapisanym wyborem `gt3`, `wec`, `f1`, a także z eksportem/importem preferencji.
+Zarówno liczby jak i wykresy pochodzą z rzeczywistych plików ACC. Nie ekstrapolujemy telemetrycznych próbek ani nie „wypełniamy” brakujących wartości.
 
-### Źródła zdjęć i prawa
+## Procedura testowania 0.3.5
 
-Wszystkie pliki mają na Wikimedia Commons deklarację **CC0 1.0 (public domain dedication)**. Można je kopiować, modyfikować i wykorzystywać komercyjnie bez obowiązku przypisywania autora; zachowujemy jednak informacje o pochodzeniu.
+1. **Przed instalacją zapisz wynik odniesienia:** 0.3.4.5 — 32,3 Hz, 6 okrążeń. Nie usuwaj zapisanych sesji.
+2. Zainstaluj `ApexAI-Setup-0.3.5-x64.exe` bez odinstalowywania wersji poprzedniej.
+3. Uruchom ACC bez osobnego rejestratora CMD. Przejedź **minimum 6 pełnych okrążeń** z rzeczywistym zużyciem paliwa i opon.
+4. W Historii otwórz nowy stint. W sekcji **Jakość telemetrii** przepisz: zapisane próbki/s, unikalne odczyty ACC/s, powtórzone pakiety (%), 95. percentyl odstępu (ms), przerwy >250 ms.
+5. Porównaj je z 32,3 Hz. Sprawdź kompletność czasów, prawidłowość prędkości/sterowania oraz FPS w ACC.
+6. Jeżeli krótki test przejdzie, wykonaj **stint 30 minut**. Sprawdź wykresy, płynność i wielkość pliku próbek.
+7. Zrób screen Dashboardu oraz raportu diagnostyki i przekaż do analizy.
 
-| Tapeta | Autor w Wikimedia Commons | Oryginał |
-|---|---|---|
-| GT3 Toyota | TTTNIS | [Toyota GR GT3 Prototype cropped](https://commons.wikimedia.org/wiki/File:Toyota_GR_GT3_Prototype_cropped.jpg) |
-| GT3 Toyota Rear | TTTNIS | [Toyota GR GT3 Prototype rear](https://commons.wikimedia.org/wiki/File:Toyota_GR_GT3_Prototype_rear.jpg) |
-| Le Mans 2023 | Briansoprano | [Car 65 Manuel Maldonado in Le Mans 2023](https://commons.wikimedia.org/wiki/File:Car_65_Manuel_Maldonado_in_Le_Mans_2023.jpg) |
-| Le Mans Classic | RandolphGuffey | [24 hours of Le Mans 1990](https://commons.wikimedia.org/wiki/File:24_hours_of_Le_Mans_1990.jpg) |
-| F1 2026 | BlackFlash06 | [2026 f1 regulation](https://commons.wikimedia.org/wiki/File:2026_f1_regulation.jpg) |
-| F1 Audi | Mustang Joe | [Audi Revolut F1](https://commons.wikimedia.org/wiki/File:Audi_Revolut_F1.jpg) |
+### Kryteria wyniku
+- **70–75 Hz zapisów, ale mniej unikalnych pakietów:** harmonogram pomiarowy działa, ogranicza nas źródło danych.
+- **Poniżej 60 Hz zapisów:** harmonogram lub obciążenie nadal ogranicza skuteczność; diagnostyka odstępów pokaże skalę problemu.
+- **Utrata okrążeń, niskie FPS, duże luki:** regresja do poprawienia przed dalszym rozwojem.
 
-Podczas kompilacji skrypt `desktop/scripts/prepare-wallpapers.ps1` pobiera zdjęcia z Wikimedia, **sprawdza ich deklarację licencji CC0**, przycina je do 16:9 i kompresuje; GitHub Actions odmawia publikacji, jeśli obrazów brakuje. Gotowe zdjęcia są dołączone do aplikacji, więc **działają bez internetu**.
+Kolejne wydania mogą zoptymalizować rozmiar danych lub częstotliwość. Nie zwiększamy celu do 100 Hz bez uzasadnienia pomiarami.
 
-## Test po instalacji — bez ACC
+## Funkcje zachowane z 0.3.4.5
 
-1. Otwórz `Ustawienia → Tło aplikacji`.
-2. Wybierz GT3 / Le Mans / F1 — zdjęcie powinno pojawić się w podglądzie i za panelami.
-3. Zmień suwaki rozmycia, jasności, nasycenia i widoczności. Efekt powinien aktualizować się bez restartowania.
-4. Naciśnij „Przywróć ustawienia tapety” — suwaki wrócą do czytelnego poziomu.
-5. Wczytaj własny JPG, PNG albo WEBP; zamknij i uruchom Apex AI ponownie — wybór powinien pozostać.
-6. Upewnij się, że Historia nadal pokazuje poprzednie stinty, a zakładka Na torze działa bez zmian.
+- Tapety GT3/WEC/F1 z licencją CC0 przechowywane lokalnie, podgląd, filtry i własny JPG/PNG/WEBP.
+- Personalizacja, PL/EN, własne widżety i aktualizator.
+- Historia i pełne raporty, analiza hamowań, porównania okrążeń, podgląd Na torze.
 
-**Rejestrator ACC jest bez zmian.** Eksperyment ze stabilnym 75 Hz pozostaje oddzielnym zakresem przyszłej wersji **0.3.5**.
+**Sesje:** `Dokumenty\ApexAI\sessions` · **Konfiguracja:** Electron `userData/settings/preferences.json`. Instalator zachowuje istniejące dane.
+
+## Kompilacja
+
+```powershell
+cd desktop
+dotnet publish collector/ApexCollector.csproj -c Release -r win-x64 --self-contained true -o collector/publish -p:PublishSingleFile=true
+npm install
+npm test
+npm run dist
+```
+
+Windows GitHub Actions dodatkowo pobiera i weryfikuje 6 zdjęć CC0, uruchamia testy UI i sprawdza zawartość instalatora oraz manifest aktualizatora `latest.yml`.
