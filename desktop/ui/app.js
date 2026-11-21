@@ -57,7 +57,7 @@ pl:{
  car:'Samochód',track:'Tor',date:'Data',avgFuel:'Średni spadek paliwa',
  sectorsEstimated:'Sektory szacunkowe z próbek ACC, nie oficjalne międzyczasy.',
  telemetryHint:'Wykresy pokazują wyłącznie rzeczywiste dane z zapisanej sesji.',
- raceInsights:'Obserwacje z danych',notice:'Ważne',test75:'Zmiana próbkowania na 75 Hz jest planowana dopiero w 0.3.5.',
+ raceInsights:'Obserwacje z danych',notice:'Ważne',test75:'Próbkowanie docelowe: 75 Hz. Rzeczywisty wynik sprawdź w Jakości telemetrii.',samplingDiagnostics:'Diagnostyka 75 Hz',target:'Cel',effectiveHz:'Zapisane próbki na sekundę',uniquePhysicsHz:'Unikalne odczyty ACC/s',duplicateFrames:'Powtórzone pakiety ACC',goalAchievement:'Realizacja celu',p95Interval:'95. percentyl odstępu',delayedIntervals:'Odstępy powyżej 25 ms',maxGap:'Najdłuższy odstęp',medianInterval:'Mediana odstępu',samplingExplanation:'Efektywne Hz liczymy tylko w ruchu (prędkość ponad 30 km/h), pomijając przerwy ponad 250 ms. Unikalne odczyty ACC mierzymy na podstawie zmian physics_packet_id. 75 Hz jest celem rejestratora, nie gwarantowaną liczbą nowych pakietów gry.',
  demo:'Dane demonstracyjne nie są wczytywane automatycznie.',
  polish:'Polski',english:'English',now:'TERAZ'
 },
@@ -116,7 +116,7 @@ en:{
  car:'Car',track:'Track',date:'Date',avgFuel:'Average fuel drop',
  sectorsEstimated:'Sectors estimated from ACC samples, not official sector splits.',
  telemetryHint:'Charts show real data from the selected session only.',
- raceInsights:'Data-driven observations',notice:'Note',test75:'75 Hz sampling will be tested separately in v0.3.5.',
+ raceInsights:'Data-driven observations',notice:'Note',test75:'Sampling target: 75 Hz. Check actual rates in Telemetry quality.',samplingDiagnostics:'75 Hz diagnostics',target:'Target',effectiveHz:'Saved samples per second',uniquePhysicsHz:'Unique ACC updates/s',duplicateFrames:'Repeated ACC packets',goalAchievement:'Target achieved',p95Interval:'95th percentile interval',delayedIntervals:'Intervals above 25 ms',maxGap:'Longest interval',medianInterval:'Median interval',samplingExplanation:'Effective Hz is measured only while moving (above 30 km/h), excluding pauses over 250 ms. Unique ACC updates are measured by physics_packet_id changes. 75 Hz is the recorder target, not a guarantee that ACC provides new packets that often.',
  demo:'Demo telemetry is not loaded automatically.',
  polish:'Polski',english:'English',now:'LIVE'
 }
@@ -179,7 +179,7 @@ function toast(msg) {
   toastTimer=setTimeout(()=>{if(x)x.hidden=true;},3300);
 }
 function collectorLabel(){return ['waiting','connected','recording'].includes(state.collector.code)?t(state.collector.code):state.collector.text||t('waiting');}
-function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.4.5';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
+function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.5';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
 function style(){
   const c=state.cfg;
   document.documentElement.style.setProperty('--accent1',c.accent);
@@ -232,7 +232,7 @@ function shell(){
  const c=state.cfg,short=c.sidebarCompact;
  root.innerHTML=
  '<div id="wallpaper"></div><div id="wallpaper-shade"></div>'+
- '<div class="titlebar"><div class="titleleft"><span class="mark">A</span>APEX AI <small>RACE INTELLIGENCE · 0.3.4.5</small></div>'+
+ '<div class="titlebar"><div class="titleleft"><span class="mark">A</span>APEX AI <small>RACE INTELLIGENCE · 0.3.5</small></div>'+
  '<div class="windowcontrols"><button class="winbtn" data-action="minimize" title="Minimize">−</button>'+
  '<button class="winbtn" data-action="maximize" title="Maximize">□</button>'+
  '<button class="winbtn close" data-action="close" title="Close">×</button></div></div>'+
@@ -242,7 +242,7 @@ function shell(){
  '<span class="navlabel">'+esc(t(k))+'</span>'+( ['setups','engineer','drive'].includes(k)?'<span class="soon">'+esc(t('planned'))+'</span>':'')+'</button>').join('')+'</nav>'+
  '<div class="navspacer"></div><div class="navbottom"><button class="navitem'+(state.view==='settings'?' active':'')+'" data-nav="settings" title="'+esc(t('settings'))+'">'+symbol('settings')+
  '<span class="navlabel">'+esc(t('settings'))+'</span></button>'+
- '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.4.5</span></div></div></aside>'+
+ '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.5</span></div></div></aside>'+
  '<div class="contentarea"><div class="topbar"><div class="top-left"><button class="ghost-square" data-action="toggle-sidebar" title="Menu">'+symbol('menu')+'</button>'+
  '<div class="top-page"><strong id="top-title">'+esc(t(state.view==='report'?'showFull':state.view))+'</strong><small>APEX AI / <span id="top-subtitle">'+esc(t(state.view==='report'?'history':state.view))+'</span></small></div></div>'+
  '<div class="top-right"><span class="connection"><i id="connection-dot" class="dot '+esc(state.collector.code)+'"></i><span id="connection-label">'+esc(state.collector.text||t('waiting'))+'</span></span>'+
@@ -442,21 +442,24 @@ function compareCard(){
  '<p class="widget-caption">'+esc(t('noValidCompare'))+'</p></section>';
 }
 function qualityCard(){
- const points=state.samples.filter(x=>Number.isFinite(x.timestamp_ms));
- let count=0,ms=0,gaps=0,broken=0,max=0;
- for(let i=1;i<points.length;i++){
-  const a=points[i-1],b=points[i],dt=b.timestamp_ms-a.timestamp_ms;
-  if(a.completed_laps!==b.completed_laps||a.speed_kmh<30||b.speed_kmh<30)continue;
-  if(dt>250)gaps++;
-  if(!Number.isFinite(dt)||dt<=0){broken++;continue;}
-  if(dt<=250){count++;ms+=dt;max=Math.max(max,dt);}
- }
- const hz=count&&ms?count*1000/ms:NaN;
- return '<section class="glass widget" data-widget="quality"><div class="widget-header"><h3>'+esc(t('quality'))+'</h3></div>'+
+ const d=window.ApexSamplingDiagnostics?.analyze(state.samples,75);
+ if(!d)return chartCard('quality',t('quality'),'<div class="empty">'+esc(t('noData'))+'</div>');
+ const fmtHz=v=>Number.isFinite(v)?num(v,1)+' Hz':'—';
+ const status=Number.isFinite(d.savedHz)?d.savedHz>=72?'✓':d.savedHz>=60?'~':'!':'—';
+ return '<section class="glass widget" data-widget="quality">'+
+ '<div class="widget-header"><h3>'+esc(t('quality'))+' · '+esc(t('samplingDiagnostics'))+'</h3>'+
+ '<span style="color:var(--accent1);font-size:12px;font-weight:700">'+status+' '+esc(t('target'))+': 75 Hz</span></div>'+
  '<div class="summary-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin:0">'+
- metric(t('samples'),String(points.length))+metric(t('hz'),Number.isFinite(hz)?num(hz,1)+' Hz':'—','50 Hz target')+
- metric(t('timeGaps'),String(gaps))+metric('Max Δt',max?Math.round(max)+' ms':'—')+'</div>'+
- '<p class="widget-caption" style="margin-top:14px">'+esc(t('test75'))+'</p></section>';
+ metric(t('samples'),String(d.count))+metric(t('effectiveHz'),fmtHz(d.savedHz),'75 Hz target')+
+ metric(t('uniquePhysicsHz'),fmtHz(d.uniqueHz))+
+ metric(t('duplicateFrames'),Number.isFinite(d.duplicatesPercent)?num(d.duplicatesPercent,1)+'%':'—')+
+ metric(t('goalAchievement'),Number.isFinite(d.goalPercent)?num(d.goalPercent,1)+'%':'—')+
+ metric(t('p95Interval'),Number.isFinite(d.p95GapMs)?num(d.p95GapMs,0)+' ms':'—')+
+ metric(t('delayedIntervals'),String(d.over25),'Δt > 25 ms')+
+ metric(t('timeGaps'),String(d.pauses),'Δt > 250 ms')+
+ metric(t('maxGap'),Number.isFinite(d.maxGapMs)?num(d.maxGapMs,0)+' ms':'—')+
+ metric(t('medianInterval'),Number.isFinite(d.medianGapMs)?num(d.medianGapMs,0)+' ms':'—')+
+ '</div><p class="widget-caption" style="margin-top:14px">'+esc(t('samplingExplanation'))+'</p></section>';
 }
 function raceCard(){
  const data=window.ApexRaceAnalysis?.analyze(state.samples,state.lapA,state.lapB);
@@ -654,7 +657,7 @@ function settings(){
  (state.updater.code==='ready'?'<button class="btn primary" data-action="install-update">'+esc(t('installUpdate'))+'</button>':'')+'</div>'+
  '<p class="small">'+esc(t('test75'))+'</p></section>'+
  '<section class="glass settings-card wide"><h3>'+esc(t('about'))+'</h3><div class="row">'+
- '<span class="small">'+esc(t('version'))+': <b>0.3.4.5</b></span>'+
+ '<span class="small">'+esc(t('version'))+': <b>0.3.5</b></span>'+
  '<span class="small">'+esc(t('recorder'))+': <b id="recorder-settings">'+esc(state.collector.text||t('waiting'))+'</b></span>'+
  '<button class="btn tiny" data-action="open-folder">'+symbol('folder')+esc(t('openFolder'))+'</button></div></section></div>';
 }
@@ -695,7 +698,7 @@ function updateStatus(){
  const label=collectorLabel();
  for(const id of ['connection-label','side-status','recorder-settings'])if(E(id))E(id).textContent=label;
  for(const id of ['connection-dot'])if(E(id))E(id).className='dot '+c.code;
- if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.4.5';
+ if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.5';
  if(E('update-text'))E('update-text').textContent=updaterLabel();
  if(E('live-dot')){E('live-dot').className='dot '+c.code;}
  if(E('live-conn'))E('live-conn').textContent=c.code==='recording'?t('liveRecording'):t('liveWaiting');
