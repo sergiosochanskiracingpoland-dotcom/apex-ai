@@ -104,7 +104,9 @@ internal static class Program
             metadata = new Dictionary<string,string> {
                 ["track"] = track, ["car"] = car,
                 ["trackName"] = TrackName(track), ["carName"] = CarName(car),
-                ["startedAtUtc"] = DateTime.UtcNow.ToString("O", Culture)
+                ["startedAtUtc"] = DateTime.UtcNow.ToString("O", Culture),
+                ["targetSamplingHz"] = SampleClock.TargetHz.ToString(Culture),
+                ["samplingMode"] = "deadline_qpc_75hz"
             };
             PreviousLap = lap;
             PreviousSector = sector;
@@ -170,12 +172,13 @@ internal static class Program
         int previousPacket = int.MinValue;
         DateTime lastPacketAt = DateTime.UtcNow, nextInfoAt = DateTime.MinValue;
         string latestTrack = "", latestCar = "";
+        var sampleClock = new SampleClock();
         State("waiting", "Oczekiwanie na uruchomienie ACC");
         try
         {
             while (!stopping)
             {
-                var watch = Stopwatch.StartNew();
+                // Use a monotonic deadline instead of Sleep(20) rounded by Windows.
                 try
                 {
                     if (g is null || p is null)
@@ -324,7 +327,7 @@ internal static class Program
                                     s3 > .07 * lastLapMs && s3 < .75 * lastLapMs)
                                 {
                                     sectors = new[] { N(s1.Value / 1000), N(s2.Value / 1000), N(s3 / 1000) };
-                                    source = "estimated_50hz"; // target sampling rate; sectors remain estimates
+                                    source = "estimated_sampling"; // estimated from sector boundaries; never official ACC sectors
                                 }
                             }
                             session.Laps.WriteLine(string.Join(",", new[] {
@@ -367,8 +370,7 @@ internal static class Program
                     State("waiting", "Ponawiam połączenie z ACC");
                     Thread.Sleep(1000);
                 }
-                int remaining = 20 - (int)watch.ElapsedMilliseconds;
-                if (remaining > 0) Thread.Sleep(remaining);
+                sampleClock.WaitForNext();
             }
         }
         finally
