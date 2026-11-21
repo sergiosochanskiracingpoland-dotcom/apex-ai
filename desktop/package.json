@@ -1,8 +1,8 @@
 {
   "name": "apex-ai-desktop",
-  "version": "0.3.5-beta.5",
+  "version": "0.3.5",
   "private": true,
-  "description": "Apex AI 0.3.4.5: offline CC0 16:9 motorsport wallpapers and wallpaper controls",
+  "description": "Apex AI 0.3.5: 75Hz QPC sampling trial with verified output and unique ACC physics diagnostics",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
@@ -60,10 +60,10 @@
       "createDesktopShortcut": true,
       "shortcutName": "Apex AI",
       "perMachine": false,
-      "artifactName": "ApexAI-Setup-0.3.4.5-${arch}.${ext}"
+      "artifactName": "ApexAI-Setup-${version}-${arch}.${ext}"
     },
     "portable": {
-      "artifactName": "ApexAI-Portable-0.3.4.5-${arch}.${ext}"
+      "artifactName": "ApexAI-Portable-${version}-${arch}.${ext}"
     },
     "publish": [
       {
