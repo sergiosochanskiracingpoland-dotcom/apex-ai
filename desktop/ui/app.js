@@ -353,7 +353,8 @@ function parseSamples(text){
  const header=lines.shift().split(',').map(x=>x.trim());
  const numeric=['completed_laps','sector_index','lap_progress','speed_kmh','gas','brake','gear','rpm','fuel',
  'tyre_fl','tyre_fr','tyre_rl','tyre_rr','pressure_fl','pressure_fr','pressure_rl','pressure_rr',
- 'steer_input','g_x','g_y','g_z','tc_action','abs_action','in_pit','physics_packet_id'];
+ 'steer_input','g_x','g_y','g_z','tc_action','abs_action','in_pit','physics_packet_id',
+ 'race_position','in_pit_lane','session_type','session_time_left_s','mandatory_pit_done'];
  const entries=numeric.map(k=>[k,header.indexOf(k)]).filter(x=>x[1]>=0);
  const ts=header.indexOf('timestamp_utc');
  const result=[];
@@ -533,7 +534,7 @@ const widgetRender={pace:paceCard,sectors:sectorsCard,speed:speedCard,pedals:ped
 function widgets(ids){return '<div class="widget-grid">'+ids.map(x=>widgetRender[x]?.()||'').join('')+'</div>';}
 function noSession(){return '<div class="empty"><strong>'+esc(t('noData'))+'</strong>'+esc(t('chooseSession'))+'</div>';}
 function dashboard(){
- return head('PERFORMANCE CENTER',t('dashboard'),t('dashboardSub'),sessionHead())+
+ return head('PERFORMANCE CENTER',t('dashboard'),t('dashboardSub'),sessionHead())+raceJump()+
  (state.currentKey?'<div class="summary-grid">'+summaryStats()+'</div>'+
  widgets(state.cfg.widgetOrder.filter(w=>state.cfg.visibleWidgets.includes(w))):
  noSession());
@@ -591,7 +592,7 @@ function insights(){
  parts.map(p=>'<p class="insight">'+esc(p)+'</p>').join('')+'</section>';
 }
 function stint(){
- return head('STINT INTELLIGENCE',t('stint'),t('stintSub'),sessionHead())+
+ return head('STINT INTELLIGENCE',t('stint'),t('stintSub'),sessionHead())+raceJump()+
  (state.currentKey?'<div class="summary-grid">'+summaryStats()+'</div><div class="widget-grid">'+
  stintTable()+fuelCard()+tyreCard()+tyrePressureCard()+electronicsCard()+raceCard()+qualityCard()+insights()+'</div>':noSession());
 }
@@ -599,7 +600,7 @@ function report(){
  return head('SESSION ARCHIVE',t('showFull'),t('fullSub'),sessionHead())+
  '<div class="buttons" style="margin:0 0 24px"><button class="btn" data-nav="history">'+symbol('history')+esc(t('history'))+'</button>'+
  '<button class="btn" data-nav="dashboard">'+symbol('dashboard')+esc(t('dashboard'))+'</button>'+
- '<button class="btn" data-nav="stint">'+symbol('stint')+esc(t('stint'))+'</button></div>'+
+ '<button class="btn" data-nav="stint">'+symbol('stint')+esc(t('stint'))+'</button></div>'+raceJump()+
  (state.currentKey?'<div class="summary-grid">'+summaryStats()+'</div>'+
  '<h2 class="sectionhead">'+esc(t('dashboard'))+'</h2>'+widgets(WIDGETS)+
  '<h2 class="sectionhead" style="margin-top:30px">'+esc(t('stint'))+'</h2><div class="widget-grid">'+stintTable()+tyrePressureCard()+electronicsCard()+insights()+'</div>':noSession());
@@ -610,18 +611,19 @@ function history(){
  return head('SESSION ARCHIVE',t('history'),t('historySub'))+
  '<div class="toolbar"><input id="session-search" type="search" value="'+esc(state.search)+'" placeholder="'+esc(t('search'))+'" style="min-width:270px;flex:1;max-width:550px" />'+
  '<span class="small">'+list.length+' / '+state.sessions.length+'</span></div>'+
- (list.length?'<div class="library-grid">'+list.map(x=>'<button class="session-card" data-open="'+esc(x.key)+'">'+
+ (list.length?'<div class="library-grid">'+list.map(x=>'<div class="history-race-item"><button class="session-card" data-open="'+esc(x.key)+'">'+
  '<small>ACC · '+esc(date(x.date))+'</small><h3>'+esc(cleanName(x.trackName||x.track)||t('track'))+'</h3>'+
  '<p>'+esc(cleanName(x.carName||x.car)||t('car'))+'</p><footer><span>'+Number(x.lapCount||0)+' '+esc(t('laps'))+' · <b>'+time(x.bestLap)+'</b></span>'+
- '<span style="color:var(--accent1)">↗</span></footer></button>').join('')+'</div>':
+ '<span style="color:var(--accent1)">↗</span></footer></button>'+(x.raceId?'<button class="btn history-race-link" data-open-race="'+esc(x.raceId)+'">'+symbol('raceView')+esc(t('raceToReport'))+'</button>':'')+'</div>').join('')+'</div>':
  '<div class="empty"><strong>'+esc(state.search?t('noMatching'):t('noSessions'))+'</strong>'+esc(t('startToSave'))+'</div>');
 }
 function live(){
  return head('LIVE ACC DATA',t('live'),t('liveSub'))+
+ '<div class="buttons"><button class="btn" data-nav="raceView">'+symbol('raceView')+esc(t('raceToReport'))+'</button></div>'+ 
  '<div class="live-status"><i id="live-dot" class="dot"></i><span id="live-conn">'+esc(t('liveWaiting'))+'</span>'+
  '<span class="small" id="live-key" style="margin-left:auto"></span></div>'+
  '<div class="live-grid">'+
- ['speed','gear','rpm','fuel'].map(x=>'<div class="glass metric"><small>'+esc(t(x))+'</small><strong id="live-'+x+'">—</strong><em>'+
+ ['speed','gear','rpm','fuel','race-position'].map(x=>'<div class="glass metric"><small>'+esc(x==='race-position'?t('racePosition'):t(x))+'</small><strong id="live-'+x+'">—</strong><em>'+
  (x==='speed'?'km/h':x==='fuel'?'L':'ACC')+'</em></div>').join('')+'</div>'+
  '<div class="widget-grid"><div class="glass widget"><div class="widget-header"><h3>'+esc(t('pedals'))+'</h3></div>'+
  '<div class="pedal"><span>'+esc(t('throttle'))+'</span><div class="pedalbar"><div id="gas-fill"></div></div><b id="gas-num">—</b></div>'+
@@ -848,6 +850,7 @@ function updateLiveDOM(){
  set('live-gear',connected?gearLabel(s.gear):'—');
  set('live-rpm',connected?num(s.rpm,0):'—');
  set('live-fuel',connected?num(s.fuel,1):'—');
+ set('live-race-position',connected&&Number.isInteger(s.race_position)&&s.race_position>0?'P'+s.race_position:'—');
  for(const [key,field]of [['gas','gas'],['brake','brake'],['progress','lap_progress']]){
   const p=connected&&Number.isFinite(Number(s[field]))?Math.round(Math.min(100,Math.max(0,s[field]*100))):0;
   if(E(key+'-fill'))E(key+'-fill').style.width=p+'%';
@@ -885,6 +888,7 @@ function syncPrefsFromInput(target){
 }
 async function click(e){
  const b=e.target.closest('button,[data-nav],[data-open]');if(!b)return;
+ if(b.dataset.openRace){void openRace(b.dataset.openRace);return;}
  if(b.dataset.nav){navigate(b.dataset.nav);return;}
  if(b.dataset.open){void openSession(b.dataset.open);return;}
  if(b.dataset.theme){
@@ -908,6 +912,12 @@ async function click(e){
  const action=b.dataset.action;
  if(!action)return;
  try {
+  if(action==='launch-acc'){
+   const result=await api.launchGame('acc');
+   if(result?.error){toast(result.error);return;}
+   if(result?.requested){state.launchRequested=true;renderPage();toast(t('launchRequested'));}
+   return;
+  }
   if(action==='minimize'||action==='maximize'||action==='close'){await api.windowAction(action);return;}
   if(action==='toggle-sidebar'){patch('sidebarCompact',!state.cfg.sidebarCompact);shell();return;}
   if(action==='check-updates'){await api.checkUpdates();return;}
@@ -1013,6 +1023,7 @@ async function boot(){
   });
   api.onUpdates(msg=>{if(!msg)return;state.updater=msg;updateStatus();if(state.view==='settings')renderPage();});
   setInterval(()=>void refreshSessions(),15000);
+  setInterval(()=>void refreshRaces(),15000);
   let liveBusy=false;
   setInterval(async()=>{if(state.view!=='live'||liveBusy)return;liveBusy=true;try{state.live=await api.getLiveTelemetry();updateLiveDOM();}catch{}finally{liveBusy=false;}},150);
  }catch(e){root.textContent='Apex AI: '+String(e.message||e);}
