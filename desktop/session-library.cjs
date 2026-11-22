@@ -79,6 +79,8 @@ function sessionInfo(dir,key) {
     key,game:'ACC',track,car,trackName,carName,date,
     lapCount:old.laps,bestLap:old.bestLap,
     samplesBytes:stat.size,
+    raceId:typeof meta.raceId==='string'&&KEY.test(meta.raceId)?meta.raceId:null,
+    sessionType:Number.isInteger(Number(meta.sessionType))&&meta.sessionType!==undefined?Number(meta.sessionType):null,
     ended:typeof meta.endedAtUtc==='string'&&!!meta.endedAtUtc
   };
 }
