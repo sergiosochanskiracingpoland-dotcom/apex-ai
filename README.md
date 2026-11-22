@@ -1,10 +1,10 @@
 # Apex AI — Race Intelligence
 
-## Windows desktop 0.3.6
+## Windows desktop 0.3.6.5
 
 **[Strona Apex AI](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
 
-[Instalator Apex AI 0.3.6 (Windows 10/11 x64)](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.6/ApexAI-Setup-0.3.6-x64.exe)
+[Instalator Apex AI 0.3.6.5 (Windows 10/11 x64)](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.6.5/ApexAI-Setup-0.3.6.5-x64.exe)
 
 ### Co nowego
 
@@ -25,4 +25,4 @@
 - Darmowe testy, bez konta i subskrypcji na obecnym etapie.
 - Dane sesji: `Dokumenty\ApexAI\sessions`; pliki historyczne zachowane.
 - Instalator nie jest podpisany certyfikatem, dlatego Windows może wyświetlić komunikat SmartScreen.
-- **Przejście z 0.3.5.1:** zalecana jednorazowa ręczna instalacja 0.3.6, ponieważ 0.3.5.1 miała wewnętrzną wersję aktualizatora 0.3.6.
+- **Przejście z 0.3.5.1:** Dostępny jest instalator 0.3.6.5. Aktualizator porównuje jego wewnętrzny numer 0.3.8 z wersjami 0.3.6 i 0.3.7.

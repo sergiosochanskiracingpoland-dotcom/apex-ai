@@ -38,7 +38,7 @@ function nameFromGameId(text) {
 }
 function lapSummary(file) {
   let csv;
-  try{csv=readSmallText(file,MAX_LAPS_BYTES)}catch{return {laps:0,bestLap:null,track:'',car:'',trackName:'',carName:''};}
+  try{csv=csvSnapshot(file,MAX_LAPS_BYTES)}catch{return {laps:0,bestLap:null,track:'',car:'',trackName:'',carName:''};}
   const lines=csv.trim().split(/\r?\n/);
   if(!lines.length)return {laps:0,bestLap:null,track:'',car:'',trackName:'',carName:''};
   const cols=lines[0].split(',').map(x=>x.trim().toLowerCase());
@@ -69,6 +69,7 @@ function sessionInfo(dir,key) {
   if(!stat.isFile())return null;
   const meta=readMeta(files.meta);
   const old=lapSummary(files.laps);
+  if(!old.laps||!hasCompleteSample(files.samples))return null;
   const track=String(meta.track||old.track||'').slice(0,100);
   const car=String(meta.car||old.car||'').slice(0,100);
   const trackName=String(meta.trackName||old.trackName||nameFromGameId(track)||'Nieznany tor').slice(0,125);
@@ -84,6 +85,15 @@ function sessionInfo(dir,key) {
     ended:typeof meta.endedAtUtc==='string'&&!!meta.endedAtUtc
   };
 }
+function hasCompleteSample(file) {
+  const fd=fs.openSync(file,'r');
+  try {
+    const buffer=Buffer.alloc(2048);
+    const length=fs.readSync(fd,buffer,0,buffer.length,0);
+    const lines=buffer.toString('utf8',0,length).split('\n');
+    return lines.slice(1,-1).some(line=>line.trim());
+  }finally{fs.closeSync(fd);}
+}
 function listSessions(dir) {
   if(!fs.existsSync(dir))return [];
   const names=fs.readdirSync(dir);
@@ -91,7 +101,8 @@ function listSessions(dir) {
     .map(x=>x.slice(0,-12)).filter(x=>KEY.test(x));
   keys.sort((a,b)=>b.localeCompare(a));
   const items=[];
-  for(const key of keys.slice(0,MAX_LIST)){
+  for(const key of keys){
+    if(items.length===MAX_LIST)break;
     try{const s=sessionInfo(dir,key);if(s)items.push(s);}catch{}
   }
   return items;

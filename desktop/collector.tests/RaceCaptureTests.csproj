@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../collector/RaceCapture.cs" Link="RaceCapture.cs"/>
+    <Compile Include="../collector/TelemetryContinuity.cs" Link="TelemetryContinuity.cs"/>
   </ItemGroup>
 </Project>

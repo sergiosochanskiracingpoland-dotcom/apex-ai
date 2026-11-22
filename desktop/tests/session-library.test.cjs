@@ -31,7 +31,7 @@ test('Automatically recognizes saved stints and sorts newest first',t=>{
   assert.equal(items[0].trackName,'Imola Autodromo Enzo e Dino Ferrari');
   assert.equal(items[0].carName,'Ferrari 296 GT3');
 });
-test('Saves an outlap-only stint in history using collector metadata',t=>{
+test('Keeps outlap telemetry readable without indexing it in History',t=>{
   const dir=setup(t),key='acc_20261119_185000_9999';
   writeStint(dir,key,{laps:false});
   fs.writeFileSync(path.join(dir,key+'_meta.json'),JSON.stringify({
@@ -39,11 +39,7 @@ test('Saves an outlap-only stint in history using collector metadata',t=>{
     car:'porsche_992_gt3_r',carName:'Porsche 992 GT3 R',
     startedAtUtc:'2026-11-19T18:50:00Z',endedAtUtc:'2026-11-19T19:00:00Z'
   }));
-  const [s]=lib.listSessions(dir);
-  assert.equal(s.lapCount,0);
-  assert.equal(s.trackName,'Autodromo Nazionale Monza');
-  assert.equal(s.carName,'Porsche 992 GT3 R');
-  assert.equal(s.ended,true);
+  assert.deepEqual(lib.listSessions(dir),[]);
   assert.ok(lib.loadSession(dir,key).samples.includes('245'));
 });
 test('Historical files remain readable without sidecar metadata',t=>{
@@ -67,4 +63,20 @@ test('Reads only full CSV rows when collector is still writing',t=>{
   fs.appendFileSync(path.join(dir,key+'_samples.csv'),'unfinished,1,2');
   const loaded=lib.loadSession(dir,key);
   assert.equal(loaded.samples.includes('unfinished'),false);
+});
+test('Refresh ignores sessions with headers or a partial first sample',t=>{
+  const dir=setup(t),key='acc_20261119_180000_5678';
+  writeStint(dir,key,{laps:false});
+  const samples=path.join(dir,key+'_samples.csv');
+  const [header,row]=fs.readFileSync(samples,'utf8').split('\n');
+  fs.writeFileSync(samples,header+'\n'+row);
+  assert.deepEqual(lib.listSessions(dir),[]);
+  fs.appendFileSync(samples,'\n');
+  assert.deepEqual(lib.listSessions(dir),[]);
+  const laps=path.join(dir,key+'_laps.csv');
+  fs.appendFileSync(laps,'1,105');
+  assert.deepEqual(lib.listSessions(dir),[]);
+  fs.appendFileSync(laps,'\n');
+  assert.equal(lib.listSessions(dir)[0].key,key);
+  assert.equal(lib.listSessions(dir).length,1);
 });

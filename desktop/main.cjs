@@ -1,5 +1,5 @@
 'use strict';
-const releaseVersion='0.3.6';
+const releaseVersion='0.3.6.5';
 const {app,BrowserWindow,Menu,shell,dialog,ipcMain,nativeImage}=require('electron');
 const {autoUpdater}=require('electron-updater');
 const {spawn}=require('node:child_process');
@@ -48,7 +48,7 @@ function handleLine(line){
     send('apex:collector',{...collectorState,sessionKey:currentKey,refresh:true});
   }else if(event==='CLOSED'){
     send('apex:collector',{...collectorState,sessionKey:currentKey,refresh:true});
-    collectorUpdate('connected','Stint archived to History');
+    collectorUpdate('connected','ACC stint ended');
   }else if(event==='ERROR'){
     collectorUpdate('error','ACC telemetry: '+detail.slice(0,150));
   }
@@ -244,7 +244,14 @@ ipcMain.handle('apex:prefs-import',wrapError(async()=>{
  const cfg=preferences.write(prefsDir,incoming);
  return {preferences:cfg};
 }));
-app.whenReady().then(()=>{
+const primaryInstance=app.requestSingleInstanceLock();
+if(!primaryInstance)app.quit();
+app.on('second-instance',()=>{
+ if(!win||win.isDestroyed())return;
+ if(win.isMinimized())win.restore();
+ win.focus();
+});
+if(primaryInstance)app.whenReady().then(()=>{
  sessionsDir=path.join(app.getPath('documents'),'ApexAI','sessions');
  prefsDir=path.join(app.getPath('userData'),'settings');
  fs.mkdirSync(sessionsDir,{recursive:true});

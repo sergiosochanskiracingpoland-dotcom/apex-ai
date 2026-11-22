@@ -1,8 +1,8 @@
 {
   "name": "apex-ai-desktop",
-  "version": "0.3.6",
+  "version": "0.3.8",
   "private": true,
-  "description": "Apex AI 0.3.6: launch ACC from Drive and track race positions, pit stops and multiple stints",
+  "description": "Apex AI 0.3.6.5: launch ACC from Drive and track race positions, pit stops and multiple stints",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
@@ -61,10 +61,10 @@
       "createDesktopShortcut": true,
       "shortcutName": "Apex AI",
       "perMachine": false,
-      "artifactName": "ApexAI-Setup-${version}-${arch}.${ext}"
+      "artifactName": "ApexAI-Setup-0.3.6.5-${arch}.${ext}"
     },
     "portable": {
-      "artifactName": "ApexAI-Portable-${version}-${arch}.${ext}"
+      "artifactName": "ApexAI-Portable-0.3.6.5-${arch}.${ext}"
     },
     "publish": [
       {

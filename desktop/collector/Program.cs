@@ -24,6 +24,19 @@ internal static class Program
 
     private static void Say(string type, string message) =>
         Console.WriteLine(type + "|" + message.Replace("\r", " ").Replace("\n", " ").Replace("|", "/"));
+    private static void Audit(string folder, string trigger, string sessionId, string? stintId,
+        int lapCount, int accCompletedLaps, int graphicsPacket, int physicsPacket)
+    {
+        var entry = JsonSerializer.Serialize(new {
+            timestampUtc = DateTime.UtcNow, trigger, sessionId, stintId, lapCount,
+            accCompletedLaps, graphicsPacket, physicsPacket,
+            process = "ApexCollector", pid = Environment.ProcessId
+        });
+        try { File.AppendAllText(Path.Combine(folder, "history-audit.jsonl"), entry + Environment.NewLine); }
+        catch (IOException error) { Say("ERROR", "History audit: " + error.Message); }
+        catch (UnauthorizedAccessException error) { Say("ERROR", "History audit: " + error.Message); }
+    }
+
     private static void State(string code, string message)
     {
         if (code == lastState) return;
@@ -81,9 +94,12 @@ internal static class Program
         public string Track { get; }
         public string Car { get; }
         private readonly string metadataFile;
+        private bool closed;
+        private bool announced;
         private readonly Dictionary<string,string> metadata;
         public StreamWriter Laps { get; }
         public StreamWriter Samples { get; }
+        public int RecordedLaps { get; set; }
         public int PreviousLap { get; set; }
         public int PreviousSector { get; set; }
         public DateTime? LapStart { get; set; }
@@ -95,8 +111,10 @@ internal static class Program
 
         public Session(string folder, string track, string car, int lap, int sector, RaceCapture race)
         {
-            string name = "acc_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", Culture) + "_" +
-                          Random.Shared.Next(1000, 9999).ToString(Culture);
+            string name;
+            do { name = "acc_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", Culture) + "_" +
+                          Random.Shared.Next(100000, 1000000).ToString(Culture); }
+            while (new[] {"_laps.csv", "_samples.csv", "_meta.json"}.Any(suffix => File.Exists(Path.Combine(folder, name + suffix))));
             Base = Path.Combine(folder, name);
             Track = track;
             Car = car;
@@ -112,27 +130,41 @@ internal static class Program
             PreviousLap = lap;
             PreviousSector = sector;
             var utf8 = new UTF8Encoding(false);
-            Laps = new StreamWriter(Base + "_laps.csv", false, utf8, 16 * 1024);
-            Samples = new StreamWriter(Base + "_samples.csv", false, utf8, 128 * 1024);
+            Laps = new StreamWriter(new FileStream(Base + "_laps.csv", FileMode.CreateNew, FileAccess.Write, FileShare.Read), utf8, 16 * 1024);
+            Samples = new StreamWriter(new FileStream(Base + "_samples.csv", FileMode.CreateNew, FileAccess.Write, FileShare.Read), utf8, 128 * 1024);
             Laps.WriteLine("lap,time,s1,s2,s3,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,sector_source,track,track_name,car_model,car_name");
             Samples.WriteLine("timestamp_utc,completed_laps,sector_index,lap_progress,speed_kmh,gas,brake,gear,rpm,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,pressure_fl,pressure_fr,pressure_rl,pressure_rr,steer_input,g_x,g_y,g_z,tc_action,abs_action,tyre_wear_fl_raw,tyre_wear_fr_raw,tyre_wear_rl_raw,tyre_wear_rr_raw,in_pit,physics_packet_id,race_position,in_pit_lane,session_type,session_time_left_s,mandatory_pit_done");
             Laps.Flush();
             Samples.Flush();
-            // A sidecar makes a stint discoverable even before its first full lap.
-            // Raw CSV samples always remain the source of truth for telemetry.
-            try { File.WriteAllText(metadataFile, JsonSerializer.Serialize(metadata), utf8); }
+        }
+        public bool AnnounceFirstSample()
+        {
+            if (announced) return false;
+            Samples.Flush();
+            SaveMetadata();
+            announced = true;
+            Say("SESSION", Path.GetFileName(Base));
+            return true;
+        }
+        private void SaveMetadata()
+        {
+            try
+            {
+                string temporary = metadataFile + ".tmp";
+                File.WriteAllText(temporary, JsonSerializer.Serialize(metadata), new UTF8Encoding(false));
+                File.Move(temporary, metadataFile, overwrite: true);
+            }
             catch (Exception error) { Say("ERROR", "Nie mogę zapisać metadanych stintu: " + error.Message); }
-            Say("SESSION", name);
         }
         public void Dispose()
         {
-            Samples.Flush();
-            Laps.Flush();
-            Samples.Dispose();
-            Laps.Dispose();
+            if (closed) return;
+            closed = true;
+            try { Samples.Dispose(); }
+            finally { Laps.Dispose(); }
+            if (!announced) return;
             metadata["endedAtUtc"] = DateTime.UtcNow.ToString("O", Culture);
-            try { File.WriteAllText(metadataFile, JsonSerializer.Serialize(metadata), new UTF8Encoding(false)); }
-            catch (Exception error) { Say("ERROR", "Nie mogę zamknąć metadanych stintu: " + error.Message); }
+            SaveMetadata();
             Say("CLOSED", Path.GetFileName(Base));
         }
     }
@@ -171,8 +203,27 @@ internal static class Program
         MemoryMappedViewAccessor? g = null, p = null;
         Session? session = null;
         RaceCapture? race = null;
-        int previousPacket = int.MinValue;
-        DateTime lastPacketAt = DateTime.UtcNow, nextInfoAt = DateTime.MinValue;
+        void CloseStint()
+        {
+            var current = session;
+            session = null;
+            current?.Dispose();
+        }
+        void CloseDrivingSession()
+        {
+            CloseStint();
+            race?.Close();
+            race = null;
+        }
+        void ReleaseMaps()
+        {
+            g?.Dispose(); p?.Dispose(); gm?.Dispose(); pm?.Dispose();
+            g = null; p = null; gm = null; pm = null;
+        }
+        var continuity = new TelemetryContinuity();
+        var elapsed = Stopwatch.StartNew();
+        bool hadGap = false;
+        DateTime nextInfoAt = DateTime.MinValue;
         string latestTrack = "", latestCar = "";
         var sampleClock = new SampleClock();
         State("waiting", "Oczekiwanie na uruchomienie ACC");
@@ -191,16 +242,13 @@ internal static class Program
                             pm = MemoryMappedFile.OpenExisting(@"Local\acpmf_physics");
                             g = gm.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
                             p = pm.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-                            previousPacket = int.MinValue;
-                            lastPacketAt = DateTime.UtcNow;
+                            continuity.Opened(elapsed.Elapsed);
                             nextInfoAt = DateTime.MinValue;
                             latestTrack = latestCar = "";
-                            State("connected", "Połączono z pamięcią ACC; czekam na jazdę");
                         }
                         catch
                         {
-                            g?.Dispose(); p?.Dispose(); gm?.Dispose(); pm?.Dispose();
-                            g = null; p = null; gm = null; pm = null;
+                            ReleaseMaps();
                             State("waiting", "ACC nie jest uruchomione");
                             Thread.Sleep(1000);
                             continue;
@@ -221,18 +269,38 @@ internal static class Program
                     int inPit = g.ReadInt32(160);
                     float progress = g.ReadSingle(248);
 
-                    if (packet != previousPacket) { previousPacket = packet; lastPacketAt = now; }
-                    else if ((now - lastPacketAt).TotalSeconds > 12)
-                        throw new InvalidOperationException("ACC nie aktualizuje pamięci przez 12 sekund");
+                    int physicsPacket = p.ReadInt32(0);
+                    var tick = elapsed.Elapsed;
+                    if (continuity.Observe(tick, packet, physicsPacket))
+                        CloseDrivingSession();
+                    if (continuity.GraphicsAdvanced && status is 0 or 1)
+                    {
+                        CloseDrivingSession();
+                        latestTrack = latestCar = "";
+                        nextInfoAt = DateTime.MinValue;
+                    }
+                    if (!continuity.IsLive(tick))
+                    {
+                        if (continuity.ShouldReopen(tick)) ReleaseMaps();
+                        State("waiting", "Oczekiwanie na świeżą telemetrię ACC");
+                        hadGap = true;
+                        sampleClock.WaitForNext();
+                        continue;
+                    }
+                    if (hadGap && session is not null)
+                    {
+                        session.LapStart = session.Boundary = null;
+                        session.SectorOne = session.SectorTwo = null;
+                        session.Pending = null;
+                        session.PreviousSector = sector;
+                        State("recording", TrackName(session.Track) + " • " + CarName(session.Car));
+                    }
+                    hadGap = false;
 
                     if (status != 2)
                     {
                         if (status is 0 or 1)
                         {
-                            session?.Dispose(); session = null;
-                            race?.Close(); race = null;
-                            latestTrack = latestCar = "";
-                            nextInfoAt = DateTime.MinValue;
                             State("connected", "ACC uruchomione; czekam na jazdę");
                         }
                         // status 3 = pause: keep the file open but stop sampling.
@@ -252,8 +320,7 @@ internal static class Program
                         {
                             if (session != null && (session.Track != info.track || session.Car != info.car))
                             {
-                                session.Dispose();
-                                session = null;
+                                CloseStint();
                             }
                             latestTrack = info.track; latestCar = info.car;
                         }
@@ -264,12 +331,19 @@ internal static class Program
                     {
                         if (race != null && !race.Matches(latestTrack,latestCar,sessionType,completed))
                         {
-                            session?.Dispose(); session=null;race.Close();race=null;
+                            CloseDrivingSession();
                         }
                         if (race is null)
                         {
+                            if (!TelemetryContinuity.CanStartStint(p.ReadSingle(28)))
+                            {
+                                State("connected", "ACC uruchomione; czekam na jazdę");
+                                sampleClock.WaitForNext();
+                                continue;
+                            }
                             race=new RaceCapture(folder,latestTrack,latestCar,sessionType,
                                 completed,inPitLane!=0);
+                            Audit(folder, "race_started_on_movement", race.Id, null, 0, completed, packet, physicsPacket);
                             Console.WriteLine("RACE|"+race.Id);
                         }
                         float pitFuel=p.ReadSingle(12), pitSpeed=p.ReadSingle(28);
@@ -281,15 +355,14 @@ internal static class Program
                     // while race sidecar keeps the whole pit visit connected.
                     if (inPit != 0 || inPitLane != 0)
                     {
-                        if(session != null){session.Dispose();session=null;}
+                        CloseStint();
                         State("connected","ACC pit lane — race report tracks stop");
                         Thread.Sleep(120);
                         continue;
                     }
                     if (session is not null && completed < session.PreviousLap)
                     {
-                        session.Dispose();
-                        session = null;
+                        CloseStint();
                     }
                     // Wait for valid game-sourced metadata instead of silently naming the wrong track.
                     if (session is null)
@@ -300,9 +373,15 @@ internal static class Program
                             Thread.Sleep(100);
                             continue;
                         }
+                        if (!TelemetryContinuity.CanStartStint(p.ReadSingle(28)))
+                        {
+                            State("connected", "ACC uruchomione; czekam na jazdę");
+                            sampleClock.WaitForNext();
+                            continue;
+                        }
                         session = new Session(folder, latestTrack, latestCar, completed, sector, race!);
-                        race!.AddStint(Path.GetFileName(session.Base));
-                        State("recording", TrackName(latestTrack) + " • " + CarName(latestCar));
+                        Audit(folder, "stint_capture_started", race!.Id, Path.GetFileName(session.Base),
+                            0, completed, packet, physicsPacket);
                     }
 
                     // ACC Physics with Pack=4 layout. Keep the existing CSV column ordering.
@@ -314,7 +393,6 @@ internal static class Program
                     float[] wear = { p.ReadSingle(120), p.ReadSingle(124), p.ReadSingle(128), p.ReadSingle(132) };
                     float[] tyre = { p.ReadSingle(152), p.ReadSingle(156), p.ReadSingle(160), p.ReadSingle(164) };
                     float tc = p.ReadSingle(204), abs = p.ReadSingle(252);
-                    int physicsPacket = p.ReadInt32(0);
 
                     bool changedSector = sector != session.PreviousSector;
                     if (changedSector)
@@ -366,7 +444,14 @@ internal static class Program
                             }));
                             session.Laps.Flush();
                             session.Samples.Flush();
-                            Console.WriteLine("LAP|" + completed.ToString(Culture) + "|" + (lastLapMs / 1000.0).ToString("F3", Culture));
+                            if (++session.RecordedLaps == 1)
+                            {
+                                string key = Path.GetFileName(session.Base);
+                                race!.AddStint(key);
+                                Audit(folder, "history_first_completed_lap", race.Id, key,
+                                    session.RecordedLaps, completed, packet, physicsPacket);
+                            }
+                            Console.WriteLine("LAP|" + session.RecordedLaps.ToString(Culture) + "|" + (lastLapMs / 1000.0).ToString("F3", Culture));
                         }
                         session.PreviousLap = completed;
                         session.Pending = null;
@@ -385,6 +470,10 @@ internal static class Program
                         (float.IsFinite(sessionTimeLeft) ? N(sessionTimeLeft,2) : ""),
                         mandatoryPitDone.ToString(Culture)
                     }));
+                    if (session.AnnounceFirstSample())
+                    {
+                        State("recording", TrackName(latestTrack) + " • " + CarName(latestCar));
+                    }
                     session.PreviousSector = sector;
                     if ((now - session.LastFlush).TotalMilliseconds >= 700)
                     {
@@ -395,10 +484,8 @@ internal static class Program
                 catch (Exception error)
                 {
                     Say("ERROR", error.Message);
-                    session?.Dispose(); session = null;
-                    race?.Close();race=null;
-                    g?.Dispose(); p?.Dispose(); gm?.Dispose(); pm?.Dispose();
-                    g = null; p = null; gm = null; pm = null;
+                    CloseDrivingSession();
+                    ReleaseMaps();
                     latestTrack = latestCar = "";
                     State("waiting", "Ponawiam połączenie z ACC");
                     Thread.Sleep(1000);
@@ -408,9 +495,8 @@ internal static class Program
         }
         finally
         {
-            session?.Dispose();
-            race?.Close();
-            g?.Dispose(); p?.Dispose(); gm?.Dispose(); pm?.Dispose();
+            CloseDrivingSession();
+            ReleaseMaps();
         }
     }
 }

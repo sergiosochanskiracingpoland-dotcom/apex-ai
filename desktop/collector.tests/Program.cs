@@ -4,6 +4,48 @@ using System.Linq;
 using System.Text.Json;
 using ApexAI.Collector;
 
+CheckTelemetryContinuity();
+
+static void CheckTelemetryContinuity()
+{
+    var gate = new TelemetryContinuity();
+    static TimeSpan At(double seconds) => TimeSpan.FromSeconds(seconds);
+    static void Check(bool expected, bool actual, string scenario)
+    {
+        if (expected != actual) throw new Exception("Telemetry continuity: " + scenario);
+    }
+
+    for (int reopen = 0; reopen < 1800; reopen += 13)
+    {
+        gate.Opened(At(reopen));
+        for (int offset = 0; offset <= 12; offset++)
+        {
+            var now = At(reopen + offset);
+            Check(false, gate.Observe(now, 395390, 395400), "same frozen packets after reopen");
+            Check(false, gate.IsLive(now), "frozen telemetry during thirty minutes idle");
+            Check(offset == 12, gate.ShouldReopen(now), "reopen deadline");
+        }
+    }
+    gate.Opened(At(1812));
+    gate.Observe(At(1812.1), 395391, 395400);
+    Check(false, gate.IsLive(At(1812.1)), "graphics advancing with frozen physics");
+    gate.Observe(At(1812.2), 395391, 395401);
+    Check(true, gate.IsLive(At(1812.2)), "both streams advance");
+    Check(false, TelemetryContinuity.CanStartStint(0), "stationary live game creates no stint");
+    Check(true, TelemetryContinuity.CanStartStint(2), "outlap can create a stint");
+    Check(false, gate.IsLive(At(1815)), "short dropout suspends sampling");
+    Check(false, gate.Observe(At(1816), 395392, 395402), "resuming same session");
+    Check(true, gate.IsLive(At(1816)), "resume after dropout");
+    gate.Opened(At(1829));
+    Check(false, gate.Observe(At(1830), 395393, 395403), "reconnect to same stream");
+    Check(true, gate.IsLive(At(1830)), "resumed packets across map reopen");
+    Check(true, gate.Observe(At(1850), 1, 1), "restart closes previous session once");
+    Check(false, gate.IsLive(At(1850)), "wait for fresh packets after restart");
+    Check(false, gate.Observe(At(1851), 2, 2), "restart is not reported twice");
+    Check(true, gate.IsLive(At(1851)), "new session can be recorded");
+    Console.WriteLine("PASS: frozen packets, idle, short dropout, reopen, restart and motion gate");
+}
+
 string dir=Path.Combine(Path.GetTempPath(),"apex-race-smoke-"+Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(dir);
 try{

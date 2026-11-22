@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   windows-build:
-    name: Build and publish Windows 0.3.6
+    name: Build and publish Windows 0.3.6.5
     runs-on: windows-latest
     timeout-minutes: 45
     defaults:
@@ -42,6 +42,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "24"
+      - name: Test ACC stint lifecycle on Windows
+        shell: pwsh
+        run: ./collector.tests/collector-lifecycle.ps1 -Collector ./collector/publish/ApexCollector.exe -TestDirectory (Join-Path $env:RUNNER_TEMP 'apex-lifecycle')
       - name: Install desktop dependencies
         run: npm install --no-audit --no-fund
       - name: Verify desktop entry and archive dashboard
@@ -84,19 +87,19 @@ jobs:
           if (-not (Test-Path "dist/latest.yml")) {
             # electron-builder 26 can skip upload metadata when --publish never.
             # Generate the same sha512/size keys from the verified NSIS installer.
-            $setup = "dist/ApexAI-Setup-0.3.6-x64.exe"
+            $setup = "dist/ApexAI-Setup-0.3.6.5-x64.exe"
             if (-not (Test-Path $setup)) { throw "Installer missing" }
             $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $setup))
             $hash = [Convert]::ToBase64String([System.Security.Cryptography.SHA512]::HashData($bytes))
             $size = $bytes.LongLength
             $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             $text = @"
-          version: 0.3.6
+          version: 0.3.8
           files:
-            - url: ApexAI-Setup-0.3.6-x64.exe
+            - url: ApexAI-Setup-0.3.6.5-x64.exe
               sha512: $hash
               size: $size
-          path: ApexAI-Setup-0.3.6-x64.exe
+          path: ApexAI-Setup-0.3.6.5-x64.exe
           sha512: $hash
           releaseDate: $date
           "@
@@ -106,19 +109,19 @@ jobs:
         shell: pwsh
         run: |
           $expected = @(
-            "dist/ApexAI-Setup-0.3.6-x64.exe",
-            "dist/ApexAI-Portable-0.3.6-x64.exe",
+            "dist/ApexAI-Setup-0.3.6.5-x64.exe",
+            "dist/ApexAI-Portable-0.3.6.5-x64.exe",
             "dist/latest.yml"
           )
           foreach ($file in $expected) {
             if (-not (Test-Path $file)) { throw "Missing release file: $file" }
             Write-Output "Verified $file"
           }
-          if ((Get-Item "dist/ApexAI-Setup-0.3.6-x64.exe").Length -lt 10000000) {
+          if ((Get-Item "dist/ApexAI-Setup-0.3.6.5-x64.exe").Length -lt 10000000) {
             throw "Installer unexpectedly small"
           }
           $manifest = Get-Content "dist/latest.yml" -Raw
-          if ($manifest -notmatch "ApexAI-Setup-0.3.6-x64.exe" -or $manifest -notmatch "sha512:") {
+          if ($manifest -notmatch "ApexAI-Setup-0.3.6.5-x64.exe" -or $manifest -notmatch "sha512:") {
             throw "latest.yml is missing installer or hash"
           }
           $unpacked = "dist/win-unpacked/resources"
@@ -140,10 +143,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $repo = $env:GITHUB_REPOSITORY
-          $tag = "v0.3.6"
+          $tag = "v0.3.6.5"
           $files = @(
-            "dist/ApexAI-Setup-0.3.6-x64.exe",
-            "dist/ApexAI-Portable-0.3.6-x64.exe",
+            "dist/ApexAI-Setup-0.3.6.5-x64.exe",
+            "dist/ApexAI-Portable-0.3.6.5-x64.exe",
             "dist/latest.yml"
           )
           $files += @(Get-ChildItem "dist/*.blockmap" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
@@ -151,7 +154,7 @@ jobs:
           if ($LASTEXITCODE -eq 0) {
             gh release upload $tag @files --repo $repo --clobber
           } else {
-            gh release create $tag @files --repo $repo --target $env:GITHUB_SHA --latest --title "Apex AI 0.3.6 — Windows" --notes "Nowa zakładka Jedź uruchamia ACC przez Steam, a Wyścig łączy stinty i pokazuje pozycję, wizyty w pit lane, zmierzone czasy, wykryty wzrost paliwa i zmianę mieszanki. Opony i naprawy pozostają niepotwierdzone bez danych źródłowych. Zachowano 75 Hz, biegi i tapety. Windows 10/11 x64, instalator niepodpisany."
+            gh release create $tag @files --repo $repo --target $env:GITHUB_SHA --latest --title "Apex AI 0.3.6.5 — Windows" --notes "Poprawka zapisu stintów po utracie telemetrii ACC. Zachowuje funkcje 0.3.6."
           }
           if ($LASTEXITCODE -ne 0) { throw "Release failed" }
           gh release edit $tag --repo $repo --draft=false --latest
@@ -161,7 +164,7 @@ jobs:
       - name: Backup binaries and updater manifest
         uses: actions/upload-artifact@v4
         with:
-          name: ApexAI-Windows-0.3.6
+          name: ApexAI-Windows-0.3.6.5
           path: |
             desktop/dist/*.exe
             desktop/dist/latest.yml

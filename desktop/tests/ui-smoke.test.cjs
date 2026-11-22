@@ -36,7 +36,7 @@ async function makeDom(config={},withStint=true,liveSample=null) {
  stints:[fixture.key],positions:[{atUtc:'2026-11-20T19:00:00Z',lap:0,position:7},{atUtc:'2026-11-20T19:17:00Z',lap:8,position:3}],
  pitStops:[{entryAtUtc:'2026-11-20T19:04:00Z',exitAtUtc:'2026-11-20T19:05:00Z',entryLap:2,laneSeconds:60,stationarySeconds:20,fuelAddedLitres:38,tyreCompoundBefore:'DHE',tyreCompoundAfter:'DHE'}]};
  window.apexDesktop={
-  version:'0.3.6',
+  version:'0.3.6.5',
   getPreferences:async()=>state,
   savePreferences:async v=>{state=prefs.normalize(v);saves.push(state);return state;},
   listSessions:async()=>sessions,
@@ -101,6 +101,22 @@ test('Dashboard, history report and settings all render using new UI',async t=>{
  assert.ok(d.querySelector('[data-pref="wallpaper"]')===null);
  assert.ok(d.querySelector('[data-wallpaper="wec"]'));
  assert.ok(d.querySelector('[data-action="choose-wallpaper"]'));
+});
+test('History refresh and opening a new renderer keep one card per saved stint',async t=>{
+ const config={setupComplete:true,language:'pl'};
+ for(let reload=0;reload<2;reload++){
+  const {window}=await makeDom(config);
+  t.after(()=>window.close());
+  const document=window.document;
+  for(let refresh=0;refresh<3;refresh++){
+   document.querySelector('[data-nav="dashboard"]').click();
+   document.querySelector('[data-nav="history"]').click();
+   await new Promise(resolve=>setTimeout(resolve,30));
+   const entries=document.querySelectorAll('#page [data-open]');
+   assert.equal(entries.length,1);
+   assert.equal(entries[0].dataset.open,data().key);
+  }
+ }
 });
 test('Switching to English updates all navigation and settings',async t=>{
  const {window}=await makeDom({setupComplete:true,driver:'Max',language:'en'});
