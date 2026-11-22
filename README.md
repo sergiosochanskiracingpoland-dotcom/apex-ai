@@ -1,20 +1,24 @@
 # Apex AI — Race Intelligence
 
-## Windows desktop 0.3.5
+## Windows desktop 0.3.5.1
 
 **[Pobierz na oficjalnej stronie Apex AI](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
 
 Bezpośredni instalator Windows:
-[ApexAI-Setup-0.3.5-x64.exe](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.5/ApexAI-Setup-0.3.5-x64.exe)
+[ApexAI-Setup-0.3.5.1-x64.exe](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.5.1/ApexAI-Setup-0.3.5.1-x64.exe)
 
-### Co nowego w 0.3.5?
+### Co nowego w 0.3.5.1?
+
+Podgląd ACC pokazuje R, N i właściwe numery biegów do przodu. W raporcie najwyższy użyty bieg uwzględnia wyłącznie biegi do przodu. Diagnostyka telemetrii ma prostsze opisy po polsku i angielsku.
+
+### Rejestrator ACC
 
 **Eksperymentalna rejestracja telemetrii ACC z celem 75 Hz**, oparta na harmonogramie według monotonicznego zegara Windows/QPC zamiast pętli odczekującej 20 ms. Wynik rzeczywisty zależy od czasu dostarczania pakietów gry i planowania pracy procesu przez Windows — cel nie jest gwarancją.
 
 **Diagnostyka w Dashboard / Pełny raport → Jakość telemetrii:**
-- efektywne Hz zapisanych próbek podczas jazdy;
-- liczba unikalnych nowych pakietów ACC na sekundę i odsetek powtarzanych pakietów;
-- realizacja celu 75 Hz, mediana i 95. percentyl opóźnień, liczba dużych luk i przestojów.
+- zapisane próbki na sekundę podczas jazdy (Hz)
+- nowe dane z ACC na sekundę i odsetek odczytów tych samych danych
+- realizacja celu 75 Hz, mediana odstępów i czas, w jakim mieści się co najmniej 95% odstępów między odczytami
 
 W teście poprzedniej wersji 0.3.4.5 użytkownik potwierdził 18/18 funkcji w 6 okrążeniach, ale efektywne próbkowanie wynosiło **32,3 Hz**. W 0.3.5 porównujemy ten wynik z rzeczywistym nowym stintem, nie deklarujemy osiągnięcia 75 Hz przed testem.
 
