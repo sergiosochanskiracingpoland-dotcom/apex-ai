@@ -20,7 +20,7 @@ pl:{
  chooseSession:'Wybierz stint z Historii lub zaczekaj na dane ACC.',
  liveSub:'Podgląd rzeczywistych danych ACC. Brak połączenia oznacza brak pomiarów, a nie sesję demonstracyjną.',
  liveWaiting:'Oczekiwanie na aktywną jazdę w ACC',liveRecording:'Odczyty na żywo z ACC',
- speed:'Prędkość',gear:'Bieg',rpm:'Obroty',fuel:'Paliwo',throttle:'Gaz',brake:'Hamulec',
+ speed:'Prędkość',gear:'Bieg',maxGear:'Najwyższy użyty bieg',rpm:'Obroty',fuel:'Paliwo',throttle:'Gaz',brake:'Hamulec',
  lapProgress:'Postęp okrążenia',tyreTemp:'Temperatury opon',tyrePressure:'Ciśnienie opon',
  lap:'Okrążenie',time:'Czas',best:'Najlepszy',average:'Średnia',deviation:'Odchylenie',
  sectors:'Sektory',race:'Analiza hamowań',pace:'Tempo okrążeń',speedPlot:'Prędkość na okrążeniu',pedals:'Gaz i hamulec',
@@ -29,7 +29,7 @@ pl:{
  lapA:'Okrążenie A',lapB:'Okrążenie B',selectedLap:'Wybrane okrążenie',
  fullLap:'Całe okrążenie',samples:'Próbki',hz:'Częstotliwość efektywna',timeGaps:'Luki ponad 250 ms',
  section:'Sekcja',liveHint:'Rejestrator zbiera telemetrię niezależnie od tego widoku. Wyniki pojawią się automatycznie w Historii.',
- pitHint:'Stinty są rozdzielane przy zjeździe do boksu. Częstotliwość zapisu pozostaje jak w 0.3.3; test 75 Hz zaplanowano na 0.3.5.',
+ pitHint:'Stinty są rozdzielane przy zjeździe do boksu. Rejestrator ma ustawiony cel 75 zapisów na sekundę.',
  settingsSub:'Dostosuj interfejs do swojego stylu. Zmiany zapisują się automatycznie na tym komputerze.',
  personalize:'Personalizacja',driverName:'Nazwa kierowcy',language:'Język aplikacji',chooseTheme:'Gotowe motywy',
  customColors:'Własne kolory',primaryColor:'Kolor główny',secondaryColor:'Kolor dodatkowy',
@@ -57,7 +57,7 @@ pl:{
  car:'Samochód',track:'Tor',date:'Data',avgFuel:'Średni spadek paliwa',
  sectorsEstimated:'Sektory szacunkowe z próbek ACC, nie oficjalne międzyczasy.',
  telemetryHint:'Wykresy pokazują wyłącznie rzeczywiste dane z zapisanej sesji.',
- raceInsights:'Obserwacje z danych',notice:'Ważne',test75:'Próbkowanie docelowe: 75 Hz. Rzeczywisty wynik sprawdź w Jakości telemetrii.',samplingDiagnostics:'Diagnostyka 75 Hz',target:'Cel',effectiveHz:'Zapisane próbki na sekundę',uniquePhysicsHz:'Unikalne odczyty ACC/s',duplicateFrames:'Powtórzone pakiety ACC',goalAchievement:'Realizacja celu',p95Interval:'95. percentyl odstępu',delayedIntervals:'Odstępy powyżej 25 ms',maxGap:'Najdłuższy odstęp',medianInterval:'Mediana odstępu',samplingExplanation:'Efektywne Hz liczymy tylko w ruchu (prędkość ponad 30 km/h), pomijając przerwy ponad 250 ms. Unikalne odczyty ACC mierzymy na podstawie zmian physics_packet_id. 75 Hz jest celem rejestratora, nie gwarantowaną liczbą nowych pakietów gry.',
+ raceInsights:'Obserwacje z danych',notice:'Ważne',test75:'Próbkowanie docelowe: 75 Hz. Rzeczywisty wynik sprawdź w Jakości telemetrii.',samplingDiagnostics:'Diagnostyka 75 Hz',target:'Cel',effectiveHz:'Zapisane próbki na sekundę',uniquePhysicsHz:'Nowe dane z ACC na sekundę',duplicateFrames:'Odczyty tych samych danych',goalAchievement:'Realizacja celu',p95Interval:'Odstęp dla 95% odczytów',delayedIntervals:'Odstępy powyżej 25 ms',maxGap:'Najdłuższy odstęp',medianInterval:'Mediana odstępu',samplingExplanation:'1 Hz to jeden zapis na sekundę. ACC może udostępniać nowe dane rzadziej, więc część odczytów powtarza te same dane. Podany odstęp oznacza, że co najmniej 95% zmierzonych przerw między odczytami było tak krótkich lub krótszych. Liczymy od 30 km/h i pomijamy przerwy dłuższe niż 250 ms.',
  demo:'Dane demonstracyjne nie są wczytywane automatycznie.',
  polish:'Polski',english:'English',now:'TERAZ'
 },
@@ -78,7 +78,7 @@ en:{
  chooseSession:'Select a stint in History or wait for an ACC recording.',
  liveSub:'Real ACC live telemetry. No connection means no readings, not a demo session.',
  liveWaiting:'Waiting for active driving in ACC',liveRecording:'Live ACC data',
- speed:'Speed',gear:'Gear',rpm:'RPM',fuel:'Fuel',throttle:'Throttle',brake:'Brake',
+ speed:'Speed',gear:'Gear',maxGear:'Highest gear used',rpm:'RPM',fuel:'Fuel',throttle:'Throttle',brake:'Brake',
  lapProgress:'Lap progress',tyreTemp:'Tyre temperatures',tyrePressure:'Tyre pressures',
  lap:'Lap',time:'Time',best:'Best',average:'Average',deviation:'Deviation',
  sectors:'Sectors',race:'Braking analysis',pace:'Lap pace',speedPlot:'Lap speed',pedals:'Throttle and brake',
@@ -87,7 +87,7 @@ en:{
  lapA:'Lap A',lapB:'Lap B',selectedLap:'Selected lap',
  fullLap:'Entire lap',samples:'Samples',hz:'Effective sampling',timeGaps:'Gaps over 250 ms',
  section:'Section',liveHint:'The collector records telemetry independently of this view. Stints are saved to History automatically.',
- pitHint:'Stints split on pit entry. Sampling stays unchanged from 0.3.3; testing 75 Hz is planned for 0.3.5.',
+ pitHint:'Stints split on pit entry. The recorder aims for 75 saves per second.',
  settingsSub:'Customize your workspace. Preferences persist locally across launches and updates.',
  personalize:'Personalization',driverName:'Driver name',language:'App language',chooseTheme:'Theme presets',
  customColors:'Custom colors',primaryColor:'Primary accent',secondaryColor:'Secondary accent',
@@ -116,7 +116,7 @@ en:{
  car:'Car',track:'Track',date:'Date',avgFuel:'Average fuel drop',
  sectorsEstimated:'Sectors estimated from ACC samples, not official sector splits.',
  telemetryHint:'Charts show real data from the selected session only.',
- raceInsights:'Data-driven observations',notice:'Note',test75:'Sampling target: 75 Hz. Check actual rates in Telemetry quality.',samplingDiagnostics:'75 Hz diagnostics',target:'Target',effectiveHz:'Saved samples per second',uniquePhysicsHz:'Unique ACC updates/s',duplicateFrames:'Repeated ACC packets',goalAchievement:'Target achieved',p95Interval:'95th percentile interval',delayedIntervals:'Intervals above 25 ms',maxGap:'Longest interval',medianInterval:'Median interval',samplingExplanation:'Effective Hz is measured only while moving (above 30 km/h), excluding pauses over 250 ms. Unique ACC updates are measured by physics_packet_id changes. 75 Hz is the recorder target, not a guarantee that ACC provides new packets that often.',
+ raceInsights:'Data-driven observations',notice:'Note',test75:'Sampling target: 75 Hz. Check actual rates in Telemetry quality.',samplingDiagnostics:'75 Hz diagnostics',target:'Target',effectiveHz:'Saved samples per second',uniquePhysicsHz:'New ACC updates per second',duplicateFrames:'Reads of the same data',goalAchievement:'Target achieved',p95Interval:'Gap for 95% of reads',delayedIntervals:'Intervals above 25 ms',maxGap:'Longest interval',medianInterval:'Median interval',samplingExplanation:'1 Hz means one save per second. ACC may provide new data less often, so some reads repeat the same data. At least 95% of measured gaps between reads were this short or shorter. Measurements start at 30 km/h and skip gaps longer than 250 ms.',
  demo:'Demo telemetry is not loaded automatically.',
  polish:'Polski',english:'English',now:'LIVE'
 }
@@ -179,7 +179,7 @@ function toast(msg) {
   toastTimer=setTimeout(()=>{if(x)x.hidden=true;},3300);
 }
 function collectorLabel(){return ['waiting','connected','recording'].includes(state.collector.code)?t(state.collector.code):state.collector.text||t('waiting');}
-function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.5';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
+function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.5.1';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
 function style(){
   const c=state.cfg;
   document.documentElement.style.setProperty('--accent1',c.accent);
@@ -232,7 +232,7 @@ function shell(){
  const c=state.cfg,short=c.sidebarCompact;
  root.innerHTML=
  '<div id="wallpaper"></div><div id="wallpaper-shade"></div>'+
- '<div class="titlebar"><div class="titleleft"><span class="mark">A</span>APEX AI <small>RACE INTELLIGENCE · 0.3.5</small></div>'+
+ '<div class="titlebar"><div class="titleleft"><span class="mark">A</span>APEX AI <small>RACE INTELLIGENCE · 0.3.5.1</small></div>'+
  '<div class="windowcontrols"><button class="winbtn" data-action="minimize" title="Minimize">−</button>'+
  '<button class="winbtn" data-action="maximize" title="Maximize">□</button>'+
  '<button class="winbtn close" data-action="close" title="Close">×</button></div></div>'+
@@ -242,7 +242,7 @@ function shell(){
  '<span class="navlabel">'+esc(t(k))+'</span>'+( ['setups','engineer','drive'].includes(k)?'<span class="soon">'+esc(t('planned'))+'</span>':'')+'</button>').join('')+'</nav>'+
  '<div class="navspacer"></div><div class="navbottom"><button class="navitem'+(state.view==='settings'?' active':'')+'" data-nav="settings" title="'+esc(t('settings'))+'">'+symbol('settings')+
  '<span class="navlabel">'+esc(t('settings'))+'</span></button>'+
- '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.5</span></div></div></aside>'+
+ '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.5.1</span></div></div></aside>'+
  '<div class="contentarea"><div class="topbar"><div class="top-left"><button class="ghost-square" data-action="toggle-sidebar" title="Menu">'+symbol('menu')+'</button>'+
  '<div class="top-page"><strong id="top-title">'+esc(t(state.view==='report'?'showFull':state.view))+'</strong><small>APEX AI / <span id="top-subtitle">'+esc(t(state.view==='report'?'history':state.view))+'</span></small></div></div>'+
  '<div class="top-right"><span class="connection"><i id="connection-dot" class="dot '+esc(state.collector.code)+'"></i><span id="connection-label">'+esc(state.collector.text||t('waiting'))+'</span></span>'+
@@ -306,6 +306,17 @@ function parseCSV(text){
   }
   return obj;
  }).filter(x=>Number.isFinite(x.lap)||Number.isFinite(x.completed_laps));
+}
+// ACC Physics CSV stores the raw gear in both old and new sessions.
+// Shared memory encodes reverse as 0, neutral as 1, and first as 2.
+function accGear(raw){
+ return Number.isInteger(raw)&&raw>=0?raw-1:null;
+}
+function gearLabel(raw){
+ const gear=accGear(raw);
+ if(gear===null)return '—';
+ if(gear===-1)return 'R';
+ return gear===0?'N':String(gear);
 }
 function parseSamples(text){
  if(!text||typeof text!=='string')return [];
@@ -450,8 +461,8 @@ function qualityCard(){
  '<div class="widget-header"><h3>'+esc(t('quality'))+' · '+esc(t('samplingDiagnostics'))+'</h3>'+
  '<span style="color:var(--accent1);font-size:12px;font-weight:700">'+status+' '+esc(t('target'))+': 75 Hz</span></div>'+
  '<div class="summary-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin:0">'+
- metric(t('samples'),String(d.count))+metric(t('effectiveHz'),fmtHz(d.savedHz),'75 Hz target')+
- metric(t('uniquePhysicsHz'),fmtHz(d.uniqueHz))+
+ metric(t('samples'),String(d.count))+metric(t('effectiveHz'),fmtHz(d.savedHz))+
+ metric(t('uniquePhysicsHz'),Number.isFinite(d.uniqueHz)?num(d.uniqueHz,1):'—')+
  metric(t('duplicateFrames'),Number.isFinite(d.duplicatesPercent)?num(d.duplicatesPercent,1)+'%':'—')+
  metric(t('goalAchievement'),Number.isFinite(d.goalPercent)?num(d.goalPercent,1)+'%':'—')+
  metric(t('p95Interval'),Number.isFinite(d.p95GapMs)?num(d.p95GapMs,0)+' ms':'—')+
@@ -524,11 +535,11 @@ function electronicsCard(){
  let rpmMax=0,gearMax=0;
  for(const x of state.samples){
   if(Number.isFinite(x.rpm)&&x.rpm>rpmMax)rpmMax=x.rpm;
-  if(Number.isFinite(x.gear)&&x.gear>gearMax)gearMax=x.gear;
+  gearMax=Math.max(gearMax,accGear(x.gear)??0);
  }
  return '<section class="glass widget"><div class="widget-header"><h3>Electronics · TC / ABS</h3></div>'+
  '<div class="summary-grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+
- metric('Max RPM',rpmMax?String(Math.round(rpmMax)):'—')+metric('Max gear',gearMax?String(gearMax):'—')+
+ metric('Max RPM',rpmMax?String(Math.round(rpmMax)):'—')+metric(t('maxGear'),gearMax?String(gearMax):'—')+
  metric('TC',useful.length?num(tc/useful.length*100,1)+'%':'—')+
  metric('ABS',useful.length?num(abs/useful.length*100,1)+'%':'—')+'</div>'+
  '<p class="widget-caption">'+esc(t('telemetryHint'))+'</p></section>';
@@ -657,7 +668,7 @@ function settings(){
  (state.updater.code==='ready'?'<button class="btn primary" data-action="install-update">'+esc(t('installUpdate'))+'</button>':'')+'</div>'+
  '<p class="small">'+esc(t('test75'))+'</p></section>'+
  '<section class="glass settings-card wide"><h3>'+esc(t('about'))+'</h3><div class="row">'+
- '<span class="small">'+esc(t('version'))+': <b>0.3.5</b></span>'+
+ '<span class="small">'+esc(t('version'))+': <b>0.3.5.1</b></span>'+
  '<span class="small">'+esc(t('recorder'))+': <b id="recorder-settings">'+esc(state.collector.text||t('waiting'))+'</b></span>'+
  '<button class="btn tiny" data-action="open-folder">'+symbol('folder')+esc(t('openFolder'))+'</button></div></section></div>';
 }
@@ -698,7 +709,7 @@ function updateStatus(){
  const label=collectorLabel();
  for(const id of ['connection-label','side-status','recorder-settings'])if(E(id))E(id).textContent=label;
  for(const id of ['connection-dot'])if(E(id))E(id).className='dot '+c.code;
- if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.5';
+ if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.5.1';
  if(E('update-text'))E('update-text').textContent=updaterLabel();
  if(E('live-dot')){E('live-dot').className='dot '+c.code;}
  if(E('live-conn'))E('live-conn').textContent=c.code==='recording'?t('liveRecording'):t('liveWaiting');
@@ -711,7 +722,7 @@ function updateLiveDOM(){
  const set=(id,value)=>{if(E(id))E(id).textContent=value;};
  set('live-key',connected?item.key:'');
  set('live-speed',connected?num(s.speed_kmh,0):'—');
- set('live-gear',connected?num(s.gear,0):'—');
+ set('live-gear',connected?gearLabel(s.gear):'—');
  set('live-rpm',connected?num(s.rpm,0):'—');
  set('live-fuel',connected?num(s.fuel,1):'—');
  for(const [key,field]of [['gas','gas'],['brake','brake'],['progress','lap_progress']]){

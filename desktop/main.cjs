@@ -1,4 +1,5 @@
 'use strict';
+const releaseVersion='0.3.5.1';
 const {app,BrowserWindow,Menu,shell,dialog,ipcMain,nativeImage}=require('electron');
 const {autoUpdater}=require('electron-updater');
 const {spawn}=require('node:child_process');
@@ -90,7 +91,7 @@ function configureUpdater(){
  autoUpdater.autoInstallOnAppQuit=true;
  autoUpdater.allowPrerelease=false;
  autoUpdater.on('checking-for-update',()=>updaterUpdate('checking','Checking for updates…'));
- autoUpdater.on('update-not-available',()=>updaterUpdate('current','Apex AI '+app.getVersion()+' is up to date'));
+ autoUpdater.on('update-not-available',()=>updaterUpdate('current','Apex AI '+releaseVersion+' is up to date'));
  autoUpdater.on('update-available',info=>updaterUpdate('available','Version '+info.version+' available — downloading'));
  autoUpdater.on('download-progress',info=>updaterUpdate('downloading','Downloading '+Math.round(info.percent)+'%'));
  autoUpdater.on('error',e=>updaterUpdate('error','Update error: '+e.message.slice(0,180)));
@@ -161,7 +162,7 @@ function createWindow(){
   dialog.showErrorBox('Apex AI','Missing desktop UI resources. Reinstall Apex AI.');app.quit();return;
  }
  win=new BrowserWindow({
-  title:'Apex AI 0.3.5',width:1450,height:960,minWidth:900,minHeight:650,
+  title:'Apex AI '+releaseVersion,width:1450,height:960,minWidth:900,minHeight:650,
   show:false,frame:false,backgroundColor:'#090a0f',autoHideMenuBar:true,
   webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,
    preload:path.join(__dirname,'preload.cjs')}
@@ -189,7 +190,7 @@ ipcMain.handle('apex:load-latest',wrapError(()=>{
  return key?library.loadSession(sessionsDir,key):null;
 }));
 ipcMain.handle('apex:get-live',wrapError(liveTelemetry));
-ipcMain.handle('apex:get-status',()=>({collector:collectorState,updates:updateState,version:app.getVersion()}));
+ipcMain.handle('apex:get-status',()=>({collector:collectorState,updates:updateState,version:releaseVersion}));
 ipcMain.handle('apex:check-updates',()=>{checkUpdates();return true;});
 ipcMain.handle('apex:install-update',()=>installUpdate());
 ipcMain.handle('apex:window-action',(_e,action)=>{

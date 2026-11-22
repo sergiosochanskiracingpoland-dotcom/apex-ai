@@ -19,12 +19,12 @@ function data() {
   const progress=i/149,sec=progress<.4?0:progress<.7?1:2;
   const v=[new Date(start+lap*120000+i*760).toISOString(),lap,sec,progress.toFixed(4),
   (120+130*Math.abs(Math.sin(progress*9))).toFixed(2),progress>.5?1:.5,
-  progress>.36&&progress<.4?0.7:0,4,6200,53-lap*2,80,82,84,86,26,26,26,26,.03,0,0,0,0,0,0,0,0,0,0,lap*150+i];
+  progress>.36&&progress<.4?0.7:0,[0,1,2,7][i%4],6200,53-lap*2,80,82,84,86,26,26,26,26,.03,0,0,0,0,0,0,0,0,0,0,lap*150+i];
   lines.push(v.join(','));
  }
  return {key:'acc_20261120_190000_1234',laps,samples:lines.join('\n')+'\n'};
 }
-async function makeDom(config={},withStint=true) {
+async function makeDom(config={},withStint=true,liveSample=null) {
  const window=new JSDOM('<!doctype html><html><body><div id="app"></div></body></html>',
   {url:'file:///C:/Apex/ui/index.html',runScripts:'dangerously',pretendToBeVisual:true}).window;
  const fixture=data(),sessions=withStint?[{key:fixture.key,game:'ACC',lapCount:2,bestLap:104.782,
@@ -32,13 +32,13 @@ async function makeDom(config={},withStint=true) {
  let state=prefs.normalize(config);
  const saves=[];
  window.apexDesktop={
-  version:'0.3.5',
+  version:'0.3.5.1',
   getPreferences:async()=>state,
   savePreferences:async v=>{state=prefs.normalize(v);saves.push(state);return state;},
   listSessions:async()=>sessions,
   loadSession:async()=>fixture,
-  getStatus:async()=>({collector:{code:'waiting',text:'ACC not running'},updates:{code:'current',text:'Up to date'}}),
-  getLiveTelemetry:async()=>({active:false}),
+  getStatus:async()=>({collector:{code:liveSample?'recording':'waiting',text:'ACC status'},updates:{code:'current',text:'Up to date'}}),
+  getLiveTelemetry:async()=>({active:!!liveSample,sample:liveSample}),
   checkUpdates:async()=>true,
   installUpdate:async()=>false,
   openSessionsFolder:async()=>null,
@@ -82,7 +82,13 @@ test('Dashboard, history report and settings all render using new UI',async t=>{
  assert.ok(d.querySelector('[data-widget="race"]'));
  assert.ok(d.querySelector('[data-widget="quality"]'));
  assert.match(d.querySelector('[data-widget="quality"]').textContent,/75 Hz/);
- assert.match(d.querySelector('[data-widget="quality"]').textContent,/Unikalne odczyty ACC/);
+ const quality=d.querySelector('[data-widget="quality"]').textContent;
+ assert.match(quality,/Zapisane próbki na sekundę/);
+ assert.match(quality,/Nowe dane z ACC na sekundę/);
+ assert.match(quality,/Odczyty tych samych danych/);
+ assert.match(quality,/Odstęp dla 95% odczytów/);
+ const gear=[...d.querySelectorAll('#page .metric small')].find(x=>x.textContent==='Najwyższy użyty bieg');
+ assert.equal(gear.nextElementSibling.textContent,'6');
  d.querySelector('[data-nav="settings"]').click();
  assert.ok(d.querySelector('[data-pref="language"]'));
  assert.ok(d.querySelector('[data-pref="wallpaper"]')===null);
@@ -147,4 +153,30 @@ test('Existing 0.3.4 wallpaper preference remains compatible',()=>{
  assert.equal(old.brightness,35);
  const added=prefs.normalize({wallpaper:'f1b'});
  assert.equal(added.wallpaper,'f1b');
+});
+
+test('ACC live telemetry displays reverse, neutral and all six forward gears',async t=>{
+ const sample={speed_kmh:40,gear:0};
+ const {window}=await makeDom({setupComplete:true},false,sample);
+ t.after(()=>window.close());
+ const d=window.document;
+ d.querySelector('[data-nav="live"]').click();
+ for(const [raw,label] of [[0,'R'],[1,'N'],[2,'1'],[3,'2'],[4,'3'],[5,'4'],[6,'5'],[7,'6'],[null,'—']]){
+  sample.gear=raw;
+  await new Promise(r=>setTimeout(r,180));
+  assert.equal(d.querySelector('#live-gear').textContent,label);
+ }
+});
+test('English report explains the four sampling measurements',async t=>{
+ const {window}=await makeDom({setupComplete:true,language:'en'});
+ t.after(()=>window.close());
+ const d=window.document;
+ d.querySelector('[data-nav="history"]').click();
+ d.querySelector('[data-open]').click();
+ await new Promise(r=>setTimeout(r,100));
+ const quality=d.querySelector('[data-widget="quality"]').textContent;
+ assert.match(quality,/Saved samples per second/);
+ assert.match(quality,/New ACC updates per second/);
+ assert.match(quality,/Reads of the same data/);
+ assert.match(quality,/Gap for 95% of reads/);
 });
