@@ -1,11 +1,12 @@
 'use strict';
-const releaseVersion='0.3.5.1';
+const releaseVersion='0.3.6';
 const {app,BrowserWindow,Menu,shell,dialog,ipcMain,nativeImage}=require('electron');
 const {autoUpdater}=require('electron-updater');
 const {spawn}=require('node:child_process');
 const path=require('node:path');
 const fs=require('node:fs');
 const library=require('./session-library.cjs');
+const races=require('./race-library.cjs');
 const preferences=require('./preferences.cjs');
 
 const resources=app.isPackaged?process.resourcesPath:__dirname;
@@ -14,7 +15,7 @@ const collectorFile=app.isPackaged?path.join(resources,'collector','ApexCollecto
   path.join(__dirname,'collector','publish','ApexCollector.exe');
 
 let win=null,collector=null,outputBuffer='',sessionsDir='',prefsDir='';
-let currentKey='';
+let currentKey='',currentRaceId='';
 let collectorState={code:'waiting',text:'ACC not running',laps:0};
 let updateState={code:'idle',text:'Checking for updates shortly'};
 let isChecking=false,updateReady=false,updateTimer=null;
@@ -35,7 +36,11 @@ function updaterUpdate(code,text){
 function handleLine(line){
   const parts=line.trim().split('|'),event=parts[0],detail=parts[1]||'';
   if(event==='STATE')collectorUpdate(detail,parts.slice(2).join('|'));
-  else if(event==='SESSION'&&VALID_KEY.test(detail)){
+  else if(event==='RACE'&&VALID_KEY.test(detail)){
+    currentRaceId=detail;
+    collectorUpdate('connected','ACC race/session telemetry linked',{raceId:detail});
+    send('apex:collector',{...collectorState,refresh:true});
+  }else if(event==='SESSION'&&VALID_KEY.test(detail)){
     currentKey=detail;collectorUpdate('recording','Recording ACC telemetry',{laps:0});
   }else if(event==='LAP'){
     const lap=Number(detail);
@@ -123,16 +128,17 @@ function sampleFromFile(key){
   // Last line may be partial while the collector is writing.
   let line='';
   for(let i=lines.length-1;i>=0;i--){
-   const part=lines[i];if(part&&part.startsWith('20')&&part.split(',').length===30){line=part;break;}
+   const part=lines[i];if(part&&part.startsWith('20')&&[30,35].includes(part.split(',').length)){line=part;break;}
   }
   if(!line)return null;
   const cols=line.split(',');
   const names=['timestamp_utc','completed_laps','sector_index','lap_progress','speed_kmh','gas','brake',
     'gear','rpm','fuel','tyre_fl','tyre_fr','tyre_rl','tyre_rr','pressure_fl','pressure_fr',
     'pressure_rl','pressure_rr','steer_input','g_x','g_y','g_z','tc_action','abs_action',
-    'tyre_wear_fl_raw','tyre_wear_fr_raw','tyre_wear_rl_raw','tyre_wear_rr_raw','in_pit','physics_packet_id'];
+    'tyre_wear_fl_raw','tyre_wear_fr_raw','tyre_wear_rl_raw','tyre_wear_rr_raw','in_pit','physics_packet_id',
+    'race_position','in_pit_lane','session_type','session_time_left_s','mandatory_pit_done'];
   const sample={};
-  for(let i=0;i<names.length;i++){
+  for(let i=0;i<cols.length;i++){
    const value=Number(cols[i]);
    sample[names[i]]=i===0?cols[i]:(cols[i]===''||!Number.isFinite(value)?null:value);
   }
@@ -142,12 +148,12 @@ function sampleFromFile(key){
 }
 function liveTelemetry(){
  const active=collectorState.code==='recording'&&VALID_KEY.test(currentKey);
- if(!active)return {active:false,key:currentKey};
+ if(!active)return {active:false,key:currentKey,raceId:currentRaceId};
  try{
   const sample=sampleFromFile(currentKey);
   const age=sample?Date.now()-Date.parse(sample.timestamp_utc):Infinity;
   if(age<0||age>4000)return {active:false,key:currentKey};
-  return {active:true,key:currentKey,sample};
+  return {active:true,key:currentKey,raceId:currentRaceId,sample};
  }catch{return {active:false,key:currentKey};}
 }
 function trustedExternal(url){
@@ -184,6 +190,14 @@ function createWindow(){
 }
 function wrapError(f){return async(...args)=>{try{return await f(...args);}catch(e){return {error:String(e.message||e)};}};}
 ipcMain.handle('apex:list-sessions',wrapError(()=>library.listSessions(sessionsDir)));
+ipcMain.handle('apex:list-races',wrapError(()=>races.listRaces(sessionsDir)));
+ipcMain.handle('apex:load-race',wrapError((_evt,id)=>races.loadRace(sessionsDir,id)));
+ipcMain.handle('apex:launch-game',wrapError(async(_evt,game)=>{
+ if(game!=='acc')throw Error('Tylko ACC jest obecnie obsługiwane.');
+ // Request only: Steam protocol launching is not proof that the game started.
+ await shell.openExternal('steam://run/805550');
+ return {requested:true,game:'acc',via:'Steam'};
+}));
 ipcMain.handle('apex:load-session',wrapError((_evt,key)=>library.loadSession(sessionsDir,key)));
 ipcMain.handle('apex:load-latest',wrapError(()=>{
  const key=library.latestSessionKey(sessionsDir);
@@ -235,6 +249,8 @@ app.whenReady().then(()=>{
  prefsDir=path.join(app.getPath('userData'),'settings');
  fs.mkdirSync(sessionsDir,{recursive:true});
  currentKey=library.latestSessionKey(sessionsDir);
+ const previousRaces=races.listRaces(sessionsDir);
+ currentRaceId=previousRaces[0]?.id||'';
  createWindow();
  startCollector();
  configureUpdater();
