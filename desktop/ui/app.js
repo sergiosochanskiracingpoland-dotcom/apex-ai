@@ -717,6 +717,100 @@ function onboard(){
  body+'<div class="buttons">'+(step>0?'<button class="btn" data-action="onboard-back">'+esc(t('back'))+'</button>':'')+
  '<button class="btn primary" data-action="'+(step===2?'onboard-finish':'onboard-next')+'">'+esc(t(step===2?'finish':'next'))+' →</button></div></section></div>';
 }
+
+function raceJump(meta=state.currentMeta){
+ return meta?.raceId?'<div class="buttons" style="margin:0 0 18px"><button class="btn" data-open-race="'+esc(meta.raceId)+'">'+symbol('raceView')+esc(t('raceToReport'))+' →</button></div>':'';
+}
+function drivePage(){
+ const status=collectorLabel();
+ return head('RACE LAUNCHER',t('drive'),t('driveSub'))+
+ '<section class="glass widget wide"><div class="widget-header"><h3>Assetto Corsa Competizione</h3><span class="small">STEAM · 805550</span></div>'+
+ '<div class="summary-grid">'+metric(t('status'),status,'ACC')+
+ metric(t('recorder'),state.collector.code==='recording'?t('recording'):t('waiting'),'75 Hz')+'</div>'+
+ '<div class="buttons"><button class="btn primary" data-action="launch-acc">'+symbol('drive')+esc(t('launchACC'))+'</button>'+
+ '<button class="btn" data-nav="live">'+symbol('live')+esc(t('live'))+'</button>'+
+ '<button class="btn" data-nav="raceView">'+symbol('raceView')+esc(t('raceView'))+'</button></div>'+
+ '<p class="widget-caption">'+esc(t('driveNote'))+'</p>'+
+ (state.launchRequested?'<p class="small" style="color:var(--accent1)">'+esc(t('launchRequested'))+'</p>':'')+
+ '</section>';
+}
+function racePage(){
+ const list=state.races||[],r=state.selectedRace;
+ let html=head('RACE INTELLIGENCE',t('raceReport'),t('racePageSub'))+
+ '<section class="glass widget wide"><div class="widget-header"><h3>'+esc(t('raceHistory'))+'</h3><span class="small">'+list.length+' ACC</span></div>'+
+ (list.length?'<div class="race-list">'+list.slice(0,50).map(x=>
+ '<button class="btn race-choice'+(r?.id===x.id?' active':'')+'" data-open-race="'+esc(x.id)+'">'+
+ '<b>'+esc(cleanName(x.track)||x.track)+'</b> · '+esc(cleanName(x.car)||x.car)+
+ ' · '+esc(date(x.date))+' · '+Number(x.pitCount||0)+' pit</button>').join('')+'</div>':
+ '<p class="small">'+esc(t('raceNoData'))+'</p>')+'</section>';
+ if(!r)return html;
+ const isRace=r.sessionType===2;
+ const pos=(r.positions||[]).filter(x=>Number.isInteger(x.position)&&x.position>0&&x.position<=200);
+ const first=pos[0]?.position,last=pos[pos.length-1]?.position;
+ const change=first&&last?first-last:null;
+ const pits=r.pitStops||[],finished=pits.filter(p=>!!p.exitAtUtc);
+ const raceStints=state.sessions.filter(s=>s.raceId===r.id);
+ const value=v=>typeof v==='number'&&Number.isFinite(v)?num(v,1):'—';
+ html+='<div class="summary-grid">'+
+ metric(t('racePit'),String(finished.length),pits.length>finished.length?'+'+(pits.length-finished.length)+' '+t('raceVisitPending'):'ACC')+
+ metric(t('raceStints'),String(r.stints?.length||0),'ACC')+
+ metric(t('raceStart'),isRace&&first?'P'+first:'—',isRace?'ACC':t('raceTraining'))+
+ metric(t('raceFinish'),isRace&&last?'P'+last:'—',isRace?'ACC':t('raceTraining'))+
+ metric(t('raceDelta'),isRace&&change!==null?(change>0?'+':'')+change:'—',t('racePosition'))+
+ '</div>'+
+ '<section class="glass widget wide"><div class="widget-header"><h3>'+esc(t('racePit'))+'</h3></div>'+
+ '<p class="widget-caption">'+esc(t('raceObserved'))+'</p>';
+ if(!pits.length)html+='<p class="small">'+esc(t('raceNoVisits'))+'</p>';
+ else html+='<div class="data-table-wrap"><table><thead><tr><th>#</th><th>'+esc(t('lap'))+'</th><th>'+
+ esc(t('racePitDuration'))+'</th><th>'+esc(t('raceStationary'))+'</th><th>'+esc(t('raceFuelAdded'))+
+ '</th><th>'+esc(t('raceCompound'))+'</th></tr></thead><tbody>'+
+ pits.map((p,i)=>{
+ const changed=p.tyreCompoundAfter&&p.tyreCompoundBefore&&p.tyreCompoundAfter!==p.tyreCompoundBefore;
+ const tyre=changed?p.tyreCompoundBefore+' → '+p.tyreCompoundAfter:t('raceTyresUnknown');
+ return '<tr><td>'+(i+1)+'</td><td>'+esc(p.entryLap??'—')+'</td>'+
+ '<td>'+esc(p.exitAtUtc?value(p.laneSeconds)+' s':t('raceVisitPending'))+'</td>'+
+ '<td>'+esc(p.exitAtUtc?value(p.stationarySeconds)+' s':'—')+'</td>'+
+ '<td>'+esc(Number.isFinite(p.fuelAddedLitres)?'+'+value(p.fuelAddedLitres)+' L':'—')+'</td>'+
+ '<td>'+esc(tyre)+'</td></tr>';
+ }).join('')+'</tbody></table></div>';
+ html+='<p class="small">'+esc(t('raceRepairsUnknown'))+'</p></section>'+
+ '<section class="glass widget wide"><div class="widget-header"><h3>'+esc(t('racePositions'))+'</h3></div>';
+ if(!pos.length||!isRace)html+='<p class="small">'+esc(t('raceNoPosition'))+'</p>';
+ else html+='<div class="data-table-wrap"><table><thead><tr><th>'+esc(t('lap'))+'</th><th>'+esc(t('racePosition'))+'</th><th>UTC</th></tr></thead><tbody>'+
+ pos.slice(-35).map(x=>'<tr><td>'+esc(x.lap)+'</td><td>P'+esc(x.position)+'</td><td>'+esc(new Date(x.atUtc).toLocaleTimeString())+'</td></tr>').join('')+
+ '</tbody></table></div>';
+ html+='</section><section class="glass widget wide"><div class="widget-header"><h3>'+esc(t('raceStints'))+'</h3></div>'+
+ '<div class="buttons">'+(r.stints||[]).map(key=>{
+ const m=raceStints.find(x=>x.key===key)||state.sessions.find(x=>x.key===key);
+ return '<button class="btn" data-open="'+esc(key)+'">'+esc(m?nameSession(m):key)+
+ ' · '+esc(m?String(m.lapCount||0)+' '+t('laps'):'ACC')+'</button>';
+ }).join('')+'</div></section>';
+ return html;
+}
+async function openRace(id,quiet=false){
+ if(!id||typeof api.loadRace!=='function')return;
+ try{
+  const race=await api.loadRace(id);
+  if(!race||race.error){toast(race?.error||t('raceNoData'));return;}
+  state.selectedRace=race;
+  if(!quiet)navigate('raceView');else if(state.view==='raceView')renderPage();
+ }catch(e){toast(String(e.message||e));}
+}
+async function refreshRaces(){
+ if(typeof api.listRaces!=='function')return;
+ try{
+  const list=await api.listRaces();
+  if(!Array.isArray(list))return;
+  const old=state.races.map(x=>x.id+'|'+x.pitCount+'|'+x.stintCount).join(',');
+  state.races=list;
+  if(state.view==='raceView'){
+   const id=state.selectedRace?.id||list[0]?.id;
+   if(id)await openRace(id,true);
+   else if(old)renderPage();
+  }
+ }catch{}
+}
+
 function placeholder(){
  return head('ROADMAP',t(state.view),t('futureDescription'))+
  '<section class="glass placeholder"><div class="symbol">✦</div><h2>'+esc(t('futureTitle'))+'</h2>'+
