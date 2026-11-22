@@ -7,8 +7,11 @@ function watch(channel,callback){
  return()=>ipcRenderer.removeListener(channel,handler);
 }
 contextBridge.exposeInMainWorld('apexDesktop',Object.freeze({
- version:'0.3.5.1',
+ version:'0.3.6',
  listSessions:()=>ipcRenderer.invoke('apex:list-sessions'),
+ listRaces:()=>ipcRenderer.invoke('apex:list-races'),
+ loadRace:id=>ipcRenderer.invoke('apex:load-race',id),
+ launchGame:game=>ipcRenderer.invoke('apex:launch-game',game),
  loadSession:key=>ipcRenderer.invoke('apex:load-session',key),
  loadLatest:()=>ipcRenderer.invoke('apex:load-latest'),
  getLiveTelemetry:()=>ipcRenderer.invoke('apex:get-live'),
