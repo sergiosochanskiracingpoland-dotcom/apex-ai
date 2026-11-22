@@ -2,7 +2,7 @@
   "name": "apex-ai-desktop",
   "version": "0.3.6",
   "private": true,
-  "description": "Apex AI 0.3.5.1: ACC gear display and clearer 75 Hz recording diagnostics",
+  "description": "Apex AI 0.3.6: launch ACC from Drive and track race positions, pit stops and multiple stints",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
@@ -24,6 +24,7 @@
       "main.cjs",
       "preload.cjs",
       "session-library.cjs",
+      "race-library.cjs",
       "preferences.cjs",
       "package.json"
     ],
@@ -60,10 +61,10 @@
       "createDesktopShortcut": true,
       "shortcutName": "Apex AI",
       "perMachine": false,
-      "artifactName": "ApexAI-Setup-0.3.5.1-${arch}.${ext}"
+      "artifactName": "ApexAI-Setup-${version}-${arch}.${ext}"
     },
     "portable": {
-      "artifactName": "ApexAI-Portable-0.3.5.1-${arch}.${ext}"
+      "artifactName": "ApexAI-Portable-${version}-${arch}.${ext}"
     },
     "publish": [
       {
