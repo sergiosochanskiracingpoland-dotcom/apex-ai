@@ -243,3 +243,12 @@ body.density-comfortable .widget,body.density-comfortable .settings-card {paddin
 @media(max-width:710px){
  .preset-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* 0.3.6 — race analysis and linked session archive */
+.history-race-item {display:flex;flex-direction:column;gap:9px;min-width:0}
+.history-race-item .session-card {width:100%;flex:1}
+.history-race-link {width:100%;justify-content:center;font-size:12px;min-height:38px}
+.race-list {display:flex;flex-wrap:wrap;gap:10px;max-height:250px;overflow:auto}
+.race-choice {white-space:normal;text-align:left;line-height:1.6;max-width:440px;font-size:12px}
+.race-choice.active {border-color:var(--accent1);box-shadow:0 0 0 1px var(--accent1)}
+.history-race-item [data-open-race] .symbol {width:16px;height:16px}
