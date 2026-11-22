@@ -22,6 +22,8 @@ jobs:
           node-version: "24"
       - name: Compile ACC 75 Hz collector with race capture
         run: dotnet build collector/ApexCollector.csproj -c Release -r win-x64
+      - name: Simulate pit lane transitions and verify race JSON
+        run: dotnet run --project collector.tests/RaceCaptureTests.csproj -c Release
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Run UI, sampling and race library regression tests
