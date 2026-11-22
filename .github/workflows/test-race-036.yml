@@ -1,0 +1,36 @@
+name: Apex AI 0.3.6 race and launcher regression
+on:
+  push:
+    branches: [feature/apex-0.3.6-races-and-drive]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-race-capture:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Compile ACC 75 Hz collector with race capture
+        run: dotnet build collector/ApexCollector.csproj -c Release -r win-x64
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run UI, sampling and race library regression tests
+        shell: pwsh
+        run: |
+          node --check ui/app.js
+          node --check main.cjs
+          node --check preload.cjs
+          node --check race-library.cjs
+          node --check session-library.cjs
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw "Apex 0.3.6 regression failed" }
