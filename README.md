@@ -1,37 +1,28 @@
 # Apex AI — Race Intelligence
 
-## Windows desktop 0.3.5.1
+## Windows desktop 0.3.6
 
-**[Pobierz na oficjalnej stronie Apex AI](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
+**[Strona Apex AI](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
 
-Bezpośredni instalator Windows:
-[ApexAI-Setup-0.3.5.1-x64.exe](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.5.1/ApexAI-Setup-0.3.5.1-x64.exe)
+[Instalator Apex AI 0.3.6 (Windows 10/11 x64)](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.6/ApexAI-Setup-0.3.6-x64.exe)
 
-### Co nowego w 0.3.5.1?
+### Co nowego
 
-Podgląd ACC pokazuje R, N i właściwe numery biegów do przodu. W raporcie najwyższy użyty bieg uwzględnia wyłącznie biegi do przodu. Diagnostyka telemetrii ma prostsze opisy po polsku i angielsku.
+- **Jedź:** uruchamianie ACC jednym przyciskiem przez Steam, prawdziwe wykrywanie gry, automatyczna rejestracja 75 Hz.
+- **Wyścig:** nowa zakładka łącząca wszystkie stinty jednego wyścigu, z pozycją, zmianami miejsc, wizytami w pit lane i danymi z pit stopów.
+- **Pit lane:** zmierzony czas w alei, przybliżony czas postoju przy bardzo niskiej prędkości, wykryty wzrost paliwa, ewentualna zmiana mieszanki.
+- **Powiązane widoki:** Historia, Dashboard, Analiza stintu i Na torze prowadzą do raportu wyścigu.
+- Historia zapisów z poprzednich wersji, korekta biegów R/N/1–6, 75 Hz i tapety CC0 pozostają bez zmian.
 
-### Rejestrator ACC
+**Ograniczenie:** obecny interfejs ACC nie potwierdza wymiany opon na nowy komplet ani zakresu napraw — przy braku informacji Apex AI wyświetla „brak danych”, nie przypisuje nieistniejących czynności.
 
-**Eksperymentalna rejestracja telemetrii ACC z celem 75 Hz**, oparta na harmonogramie według monotonicznego zegara Windows/QPC zamiast pętli odczekującej 20 ms. Wynik rzeczywisty zależy od czasu dostarczania pakietów gry i planowania pracy procesu przez Windows — cel nie jest gwarancją.
+**Nowość wymaga krótkiego testu w prawdziwym wyścigu z jednym pit stopem.** GitHub Actions i test symulowany przeszły, ale nie zastępują testu ACC w grze.
 
-**Diagnostyka w Dashboard / Pełny raport → Jakość telemetrii:**
-- zapisane próbki na sekundę podczas jazdy (Hz)
-- nowe dane z ACC na sekundę i odsetek odczytów tych samych danych
-- realizacja celu 75 Hz, mediana odstępów i czas, w jakim mieści się co najmniej 95% odstępów między odczytami
+[Instrukcja, źródła danych i plan testu 0.3.6](desktop/README.md) · [Wydania aplikacji](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases)
 
-W teście poprzedniej wersji 0.3.4.5 użytkownik potwierdził 18/18 funkcji w 6 okrążeniach, ale efektywne próbkowanie wynosiło **32,3 Hz**. W 0.3.5 porównujemy ten wynik z rzeczywistym nowym stintem, nie deklarujemy osiągnięcia 75 Hz przed testem.
+### Dostęp i dane
 
-### Wszystko, co działało wcześniej, zostaje
-
-- Personalizowany interfejs w językach PL / EN i własny pasek okna.
-- Sześć **lokalnych tapet motorsportowych CC0** w 16:9 i własny JPG/PNG/WEBP, rozmycie/jasność/nasycenie/widoczność.
-- Konfigurowalny Dashboard, statystyki, analiza hamowań i porównania.
-- Automatyczne wykrywanie ACC i kolektor działający w tle.
-- Historia stintów, podgląd telemetrii „Na torze”, eksport/import ustawień i aktualizator.
-
-**Dane zachowywane podczas aktualizacji:** `Dokumenty\ApexAI\sessions`, ustawienia w katalogu danych użytkownika Electron.
-
-[Pełna dokumentacja i test 0.3.5](desktop/README.md) · [Wszystkie wydania](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases)
-
-Instalator Windows 10/11 x64 nie jest podpisany certyfikatem, więc SmartScreen może ostrzec o nieznanym wydawcy.
+- Darmowe testy, bez konta i subskrypcji na obecnym etapie.
+- Dane sesji: `Dokumenty\ApexAI\sessions`; pliki historyczne zachowane.
+- Instalator nie jest podpisany certyfikatem, dlatego Windows może wyświetlić komunikat SmartScreen.
+- **Przejście z 0.3.5.1:** zalecana jednorazowa ręczna instalacja 0.3.6, ponieważ 0.3.5.1 miała wewnętrzną wersję aktualizatora 0.3.6.
