@@ -5,7 +5,7 @@ if(!api||!root){document.body.textContent='Apex AI desktop bridge unavailable';r
 const dict={
 pl:{
  home:'Strona główna',dashboard:'Dashboard',stint:'Analiza stintu',history:'Historia',live:'Na torze',
- settings:'Ustawienia',setups:'Setupy',engineer:'Inżynier AI',drive:'Jedź',
+ settings:'Ustawienia',setups:'Setupy',engineer:'Inżynier AI',drive:'Jedź',raceView:'Wyścig',
  workspace:'PRZESTRZEŃ KIEROWCY',waiting:'Oczekiwanie na ACC',connected:'ACC wykryte',recording:'Nagrywanie sesji ACC',
  welcome:'Witaj',driver:'Kierowco',heroSub:'Twoje tempo. Twoje postępy. Wszystkie przejazdy w jednym miejscu.',
  openHistory:'Otwórz bibliotekę',current:'Aktualny przejazd',recorded:'Zapisane stinty',laps:'Okrążenia',
@@ -34,7 +34,7 @@ pl:{
  personalize:'Personalizacja',driverName:'Nazwa kierowcy',language:'Język aplikacji',chooseTheme:'Gotowe motywy',
  customColors:'Własne kolory',primaryColor:'Kolor główny',secondaryColor:'Kolor dodatkowy',
  backdrop:'Tło aplikacji',wallpaperChoose:'Gotowe tapety',none:'Bez tapety',own:'Własna tapeta',
- upload:'Wybierz plik JPG / PNG / WEBP',wallHelp:'Gotowe tapety motorsportowe wymagają internetu i mają informacje o autorach. Własna tapeta zapisuje się lokalnie.',
+ upload:'Wybierz plik JPG / PNG / WEBP',wallHelp:'Tapety motorsportowe CC0 działają bez internetu. Własna tapeta zapisuje się lokalnie.',
  blur:'Rozmycie',brightness:'Jasność',saturation:'Nasycenie',opacity:'Widoczność tapety',
  layout:'Układ i widżety',density:'Gęstość interfejsu',compact:'Kompaktowa',normal:'Standardowa',
  comfortable:'Przestronna',sidebar:'Zwiń menu boczne',widgets:'Widżety Dashboardu',
@@ -63,7 +63,7 @@ pl:{
 },
 en:{
  home:'Home',dashboard:'Dashboard',stint:'Stint analysis',history:'History',live:'On track',
- settings:'Settings',setups:'Setups',engineer:'AI engineer',drive:'Drive',
+ settings:'Settings',setups:'Setups',engineer:'AI engineer',drive:'Drive',raceView:'Race',
  workspace:'DRIVER WORKSPACE',waiting:'Waiting for ACC',connected:'ACC detected',recording:'Recording ACC session',
  welcome:'Welcome',driver:'Driver',heroSub:'Your pace. Your progress. Every run in one place.',
  openHistory:'Open session library',current:'Current run',recorded:'Saved stints',laps:'Laps',
@@ -92,7 +92,7 @@ en:{
  personalize:'Personalization',driverName:'Driver name',language:'App language',chooseTheme:'Theme presets',
  customColors:'Custom colors',primaryColor:'Primary accent',secondaryColor:'Secondary accent',
  backdrop:'App background',wallpaperChoose:'Wallpaper presets',none:'No wallpaper',own:'Custom wallpaper',
- upload:'Choose JPG / PNG / WEBP file',wallHelp:'Motorsport presets require internet and include photo credits. Uploaded wallpapers are saved locally.',
+ upload:'Choose JPG / PNG / WEBP file',wallHelp:'CC0 motorsport wallpapers work offline. Uploaded wallpapers are saved locally.',
  blur:'Blur',brightness:'Brightness',saturation:'Saturation',opacity:'Wallpaper opacity',
  layout:'Layout and widgets',density:'UI density',compact:'Compact',normal:'Normal',
  comfortable:'Comfortable',sidebar:'Compact sidebar',widgets:'Dashboard widgets',
@@ -136,6 +136,7 @@ const themes={
  blue:['#62a9ff','#5859fa'],green:['#54d6ac','#278bab']
 };
 const icons={
+ raceView:'<path d="M5 3v18M5 5h13l-3 4 3 4H5"/><path d="M9 9h2m4 0h2m-5 3h2"/>',
  home:'<path d="m3 10 9-7 9 7v11H3z"/><path d="M9 21v-8h6v8"/>',
  dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
  stint:'<path d="M3 19V5m0 14h18M7 14l4-5 3 3 6-7"/>',
@@ -154,7 +155,7 @@ const icons={
  folder:'<path d="M3 6h7l2 3h9v12H3z"/>'
 };
 const state={
- cfg:null,view:'home',sessions:[],search:'',currentKey:'',currentMeta:null,
+ cfg:null,view:'home',sessions:[],races:[],selectedRace:null,launchRequested:false,search:'',currentKey:'',currentMeta:null,
  laps:[],samples:[],selectedLap:1,lapA:1,lapB:2,
  collector:{code:'waiting',text:''},updater:{code:'idle',text:''},live:null,
  onboardingStep:0,dragWidget:null,loading:false,lastError:''
@@ -179,7 +180,7 @@ function toast(msg) {
   toastTimer=setTimeout(()=>{if(x)x.hidden=true;},3300);
 }
 function collectorLabel(){return ['waiting','connected','recording'].includes(state.collector.code)?t(state.collector.code):state.collector.text||t('waiting');}
-function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.5.1';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
+function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.6';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
 function style(){
   const c=state.cfg;
   document.documentElement.style.setProperty('--accent1',c.accent);
@@ -226,13 +227,13 @@ function nameSession(s){
 }
 function navItems(){
  return [['home','home'],['dashboard','dashboard'],['stint','stint'],['history','history'],['live','live'],
- ['setups','setups'],['engineer','engineer'],['drive','drive']];
+ ['raceView','raceView'],['drive','drive'],['setups','setups'],['engineer','engineer']];
 }
 function shell(){
  const c=state.cfg,short=c.sidebarCompact;
  root.innerHTML=
  '<div id="wallpaper"></div><div id="wallpaper-shade"></div>'+
- '<div class="titlebar"><div class="titleleft"><span class="mark">A</span>APEX AI <small>RACE INTELLIGENCE · 0.3.5.1</small></div>'+
+ '<div class="titlebar"><div class="titleleft"><span class="mark">A</span>APEX AI <small>RACE INTELLIGENCE · 0.3.6</small></div>'+
  '<div class="windowcontrols"><button class="winbtn" data-action="minimize" title="Minimize">−</button>'+
  '<button class="winbtn" data-action="maximize" title="Maximize">□</button>'+
  '<button class="winbtn close" data-action="close" title="Close">×</button></div></div>'+
@@ -242,7 +243,7 @@ function shell(){
  '<span class="navlabel">'+esc(t(k))+'</span>'+( ['setups','engineer','drive'].includes(k)?'<span class="soon">'+esc(t('planned'))+'</span>':'')+'</button>').join('')+'</nav>'+
  '<div class="navspacer"></div><div class="navbottom"><button class="navitem'+(state.view==='settings'?' active':'')+'" data-nav="settings" title="'+esc(t('settings'))+'">'+symbol('settings')+
  '<span class="navlabel">'+esc(t('settings'))+'</span></button>'+
- '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.5.1</span></div></div></aside>'+
+ '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.6</span></div></div></aside>'+
  '<div class="contentarea"><div class="topbar"><div class="top-left"><button class="ghost-square" data-action="toggle-sidebar" title="Menu">'+symbol('menu')+'</button>'+
  '<div class="top-page"><strong id="top-title">'+esc(t(state.view==='report'?'showFull':state.view))+'</strong><small>APEX AI / <span id="top-subtitle">'+esc(t(state.view==='report'?'history':state.view))+'</span></small></div></div>'+
  '<div class="top-right"><span class="connection"><i id="connection-dot" class="dot '+esc(state.collector.code)+'"></i><span id="connection-label">'+esc(state.collector.text||t('waiting'))+'</span></span>'+
@@ -251,7 +252,7 @@ function shell(){
  style();renderPage();
 }
 function navigate(view){
- const allow=['home','dashboard','stint','history','live','settings','report','setups','engineer','drive'];
+ const allow=['home','dashboard','stint','history','live','raceView','settings','report','setups','engineer','drive'];
  if(!allow.includes(view))return;
  state.view=view;
  document.querySelectorAll('[data-nav]').forEach(x=>x.classList.toggle('active',x.dataset.nav===view||view==='report'&&x.dataset.nav==='history'));
@@ -259,6 +260,7 @@ function navigate(view){
  if(E('top-subtitle'))E('top-subtitle').textContent=t(view==='report'?'history':view);
  renderPage();
  E('page').scrollTop=0;
+ if(view==='raceView'&&!state.selectedRace&&state.races[0])void openRace(state.races[0].id,true);
  if(['dashboard','stint','report'].includes(view)&&!state.currentKey&&state.sessions[0])
    void openSession(state.sessions[0].key,true);
 }
@@ -668,7 +670,7 @@ function settings(){
  (state.updater.code==='ready'?'<button class="btn primary" data-action="install-update">'+esc(t('installUpdate'))+'</button>':'')+'</div>'+
  '<p class="small">'+esc(t('test75'))+'</p></section>'+
  '<section class="glass settings-card wide"><h3>'+esc(t('about'))+'</h3><div class="row">'+
- '<span class="small">'+esc(t('version'))+': <b>0.3.5.1</b></span>'+
+ '<span class="small">'+esc(t('version'))+': <b>0.3.6</b></span>'+
  '<span class="small">'+esc(t('recorder'))+': <b id="recorder-settings">'+esc(state.collector.text||t('waiting'))+'</b></span>'+
  '<button class="btn tiny" data-action="open-folder">'+symbol('folder')+esc(t('openFolder'))+'</button></div></section></div>';
 }
@@ -700,6 +702,7 @@ function renderPage(){
  page.innerHTML=!state.cfg.setupComplete?onboard():
  state.view==='home'?home():state.view==='dashboard'?dashboard():state.view==='stint'?stint():
  state.view==='report'?report():state.view==='history'?history():state.view==='live'?live():
+ state.view==='drive'?drivePage():state.view==='raceView'?racePage():
  state.view==='settings'?settings():placeholder();
  page.scrollTop=before;
  if(state.view==='live')updateLiveDOM();
@@ -709,7 +712,7 @@ function updateStatus(){
  const label=collectorLabel();
  for(const id of ['connection-label','side-status','recorder-settings'])if(E(id))E(id).textContent=label;
  for(const id of ['connection-dot'])if(E(id))E(id).className='dot '+c.code;
- if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.5.1';
+ if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.6';
  if(E('update-text'))E('update-text').textContent=updaterLabel();
  if(E('live-dot')){E('live-dot').className='dot '+c.code;}
  if(E('live-conn'))E('live-conn').textContent=c.code==='recording'?t('liveRecording'):t('liveWaiting');
@@ -876,6 +879,8 @@ async function boot(){
   state.cfg=await api.getPreferences();
   state.sessions=await api.listSessions();
   if(!Array.isArray(state.sessions))state.sessions=[];
+  state.races=typeof api.listRaces==='function'?await api.listRaces():[];
+  if(!Array.isArray(state.races))state.races=[];
   const status=await api.getStatus();
   if(status?.collector)state.collector=status.collector;
   if(status?.updates)state.updater=status.updates;
@@ -883,8 +888,8 @@ async function boot(){
   if(state.cfg.setupComplete&&state.sessions[0])void openSession(state.sessions[0].key,true);
   api.onCollector(msg=>{
    if(!msg)return;
-   if(msg.code){state.collector={code:msg.code,text:msg.text||''};updateStatus();}
-   if(msg.refresh||msg.code==='recording'){void refreshSessions();}
+   if(msg.code){state.collector={...state.collector,...msg};updateStatus();}
+   if(msg.refresh||msg.code==='recording'){void refreshSessions();void refreshRaces();}
   });
   api.onUpdates(msg=>{if(!msg)return;state.updater=msg;updateStatus();if(state.view==='settings')renderPage();});
   setInterval(()=>void refreshSessions(),15000);
