@@ -93,7 +93,7 @@ internal static class Program
         public (DateTime? start, double? s1, double? s2, DateTime at)? Pending { get; set; }
         public DateTime LastFlush { get; set; } = DateTime.UtcNow;
 
-        public Session(string folder, string track, string car, int lap, int sector)
+        public Session(string folder, string track, string car, int lap, int sector, RaceCapture race)
         {
             string name = "acc_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", Culture) + "_" +
                           Random.Shared.Next(1000, 9999).ToString(Culture);
@@ -102,7 +102,8 @@ internal static class Program
             Car = car;
             metadataFile = Base + "_meta.json";
             metadata = new Dictionary<string,string> {
-                ["track"] = track, ["car"] = car,
+                ["track"] = track, ["car"] = car, ["raceId"] = race.Id,
+                ["sessionType"] = race.Type.ToString(Culture),
                 ["trackName"] = TrackName(track), ["carName"] = CarName(car),
                 ["startedAtUtc"] = DateTime.UtcNow.ToString("O", Culture),
                 ["targetSamplingHz"] = SampleClock.TargetHz.ToString(Culture),
@@ -114,7 +115,7 @@ internal static class Program
             Laps = new StreamWriter(Base + "_laps.csv", false, utf8, 16 * 1024);
             Samples = new StreamWriter(Base + "_samples.csv", false, utf8, 128 * 1024);
             Laps.WriteLine("lap,time,s1,s2,s3,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,sector_source,track,track_name,car_model,car_name");
-            Samples.WriteLine("timestamp_utc,completed_laps,sector_index,lap_progress,speed_kmh,gas,brake,gear,rpm,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,pressure_fl,pressure_fr,pressure_rl,pressure_rr,steer_input,g_x,g_y,g_z,tc_action,abs_action,tyre_wear_fl_raw,tyre_wear_fr_raw,tyre_wear_rl_raw,tyre_wear_rr_raw,in_pit,physics_packet_id");
+            Samples.WriteLine("timestamp_utc,completed_laps,sector_index,lap_progress,speed_kmh,gas,brake,gear,rpm,fuel,tyre_fl,tyre_fr,tyre_rl,tyre_rr,pressure_fl,pressure_fr,pressure_rl,pressure_rr,steer_input,g_x,g_y,g_z,tc_action,abs_action,tyre_wear_fl_raw,tyre_wear_fr_raw,tyre_wear_rl_raw,tyre_wear_rr_raw,in_pit,physics_packet_id,race_position,in_pit_lane,session_type,session_time_left_s,mandatory_pit_done");
             Laps.Flush();
             Samples.Flush();
             // A sidecar makes a stint discoverable even before its first full lap.
@@ -169,6 +170,7 @@ internal static class Program
         MemoryMappedFile? gm = null, pm = null;
         MemoryMappedViewAccessor? g = null, p = null;
         Session? session = null;
+        RaceCapture? race = null;
         int previousPacket = int.MinValue;
         DateTime lastPacketAt = DateTime.UtcNow, nextInfoAt = DateTime.MinValue;
         string latestTrack = "", latestCar = "";
@@ -207,6 +209,11 @@ internal static class Program
 
                     DateTime now = DateTime.UtcNow;
                     int packet = g.ReadInt32(0);
+                    int sessionType = g.ReadInt32(8);
+                    int position = g.ReadInt32(136);
+                    float sessionTimeLeft = g.ReadSingle(152);
+                    int inPitLane = g.ReadInt32(280);
+                    int mandatoryPitDone = g.ReadInt32(288);
                     int status = g.ReadInt32(4);
                     int completed = g.ReadInt32(132);
                     int lastLapMs = g.ReadInt32(144);
@@ -223,6 +230,7 @@ internal static class Program
                         if (status is 0 or 1)
                         {
                             session?.Dispose(); session = null;
+                            race?.Close(); race = null;
                             latestTrack = latestCar = "";
                             nextInfoAt = DateTime.MinValue;
                             State("connected", "ACC uruchomione; czekam na jazdę");
@@ -234,15 +242,6 @@ internal static class Program
                     if (completed is < 0 or > 100000 || sector is < 0 or > 2 || !float.IsFinite(progress))
                     {
                         Thread.Sleep(100);
-                        continue;
-                    }
-                    // A stint is one continuous track run between pit visits.
-                    // Archive it automatically on pit entry and start a NEW stint on pit exit.
-                    if (inPit != 0)
-                    {
-                        if (session != null) { session.Dispose(); session = null; }
-                        State("connected", "Samochód w pit lane — stint zapisany, czekam na wyjazd");
-                        Thread.Sleep(120);
                         continue;
                     }
                     if (now >= nextInfoAt)
@@ -259,6 +258,34 @@ internal static class Program
                             latestTrack = info.track; latestCar = info.car;
                         }
                     }
+                    // One race/session can contain several stints. Read race standings and pit
+                    // flags from documented ACC Graphics (Pack=4, v1.8+), not estimates.
+                    if (!string.IsNullOrEmpty(latestTrack) && !string.IsNullOrEmpty(latestCar))
+                    {
+                        if (race != null && !race.Matches(latestTrack,latestCar,sessionType,completed))
+                        {
+                            session?.Dispose(); session=null;race.Close();race=null;
+                        }
+                        if (race is null)
+                        {
+                            race=new RaceCapture(folder,latestTrack,latestCar,sessionType,
+                                completed,inPitLane!=0);
+                            Console.WriteLine("RACE|"+race.Id);
+                        }
+                        float pitFuel=p.ReadSingle(12), pitSpeed=p.ReadSingle(28);
+                        string pitCompound=ReadString(g,176);
+                        race.Update(now,completed,position,inPitLane!=0,
+                            inPit!=0,pitSpeed,pitFuel,pitCompound);
+                    }
+                    // Split stints at PIT LANE ENTRY, not at the garage/box,
+                    // while race sidecar keeps the whole pit visit connected.
+                    if (inPit != 0 || inPitLane != 0)
+                    {
+                        if(session != null){session.Dispose();session=null;}
+                        State("connected","ACC pit lane — race report tracks stop");
+                        Thread.Sleep(120);
+                        continue;
+                    }
                     if (session is not null && completed < session.PreviousLap)
                     {
                         session.Dispose();
@@ -273,7 +300,8 @@ internal static class Program
                             Thread.Sleep(100);
                             continue;
                         }
-                        session = new Session(folder, latestTrack, latestCar, completed, sector);
+                        session = new Session(folder, latestTrack, latestCar, completed, sector, race!);
+                        race!.AddStint(Path.GetFileName(session.Base));
                         State("recording", TrackName(latestTrack) + " • " + CarName(latestCar));
                     }
 
@@ -351,7 +379,11 @@ internal static class Program
                         N(pressure[0]), N(pressure[1]), N(pressure[2]), N(pressure[3]),
                         N(steering,5), N(gx,4), N(gy,4), N(gz,4), N(tc,4), N(abs,4),
                         N(wear[0],5), N(wear[1],5), N(wear[2],5), N(wear[3],5),
-                        inPit.ToString(Culture), physicsPacket.ToString(Culture)
+                        inPit.ToString(Culture), physicsPacket.ToString(Culture),
+                        (position is >= 1 and <= 200 ? position.ToString(Culture) : ""),
+                        inPitLane.ToString(Culture),sessionType.ToString(Culture),
+                        (float.IsFinite(sessionTimeLeft) ? N(sessionTimeLeft,2) : ""),
+                        mandatoryPitDone.ToString(Culture)
                     }));
                     session.PreviousSector = sector;
                     if ((now - session.LastFlush).TotalMilliseconds >= 700)
@@ -364,6 +396,7 @@ internal static class Program
                 {
                     Say("ERROR", error.Message);
                     session?.Dispose(); session = null;
+                    race?.Close();race=null;
                     g?.Dispose(); p?.Dispose(); gm?.Dispose(); pm?.Dispose();
                     g = null; p = null; gm = null; pm = null;
                     latestTrack = latestCar = "";
@@ -376,6 +409,7 @@ internal static class Program
         finally
         {
             session?.Dispose();
+            race?.Close();
             g?.Dispose(); p?.Dispose(); gm?.Dispose(); pm?.Dispose();
         }
     }
