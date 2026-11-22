@@ -28,14 +28,21 @@ async function makeDom(config={},withStint=true,liveSample=null) {
  const window=new JSDOM('<!doctype html><html><body><div id="app"></div></body></html>',
   {url:'file:///C:/Apex/ui/index.html',runScripts:'dangerously',pretendToBeVisual:true}).window;
  const fixture=data(),sessions=withStint?[{key:fixture.key,game:'ACC',lapCount:2,bestLap:104.782,
-  trackName:'Imola',carName:'Ferrari 296 GT3',date:'2026-11-20T19:00:00Z'}]:[];
+  trackName:'Imola',carName:'Ferrari 296 GT3',date:'2026-11-20T19:00:00Z',raceId:'acc_20261120_190000_9999',sessionType:2}]:[];
  let state=prefs.normalize(config);
- const saves=[];
+ const saves=[];let launches=0;
+ const raceId='acc_20261120_190000_9999';
+ const race={schemaVersion:1,id:raceId,track:'imola',car:'ferrari_296_gt3',sessionType:2,
+ stints:[fixture.key],positions:[{atUtc:'2026-11-20T19:00:00Z',lap:0,position:7},{atUtc:'2026-11-20T19:17:00Z',lap:8,position:3}],
+ pitStops:[{entryAtUtc:'2026-11-20T19:04:00Z',exitAtUtc:'2026-11-20T19:05:00Z',entryLap:2,laneSeconds:60,stationarySeconds:20,fuelAddedLitres:38,tyreCompoundBefore:'DHE',tyreCompoundAfter:'DHE'}]};
  window.apexDesktop={
-  version:'0.3.5.1',
+  version:'0.3.6',
   getPreferences:async()=>state,
   savePreferences:async v=>{state=prefs.normalize(v);saves.push(state);return state;},
   listSessions:async()=>sessions,
+  listRaces:async()=>withStint?[{id:raceId,track:'imola',car:'ferrari_296_gt3',date:'2026-11-20T19:00:00Z',pitCount:1,stintCount:1}]:[],
+  loadRace:async()=>race,
+  launchGame:async game=>{if(game==='acc')launches++;return {requested:true,game};},
   loadSession:async()=>fixture,
   getStatus:async()=>({collector:{code:liveSample?'recording':'waiting',text:'ACC status'},updates:{code:'current',text:'Up to date'}}),
   getLiveTelemetry:async()=>({active:!!liveSample,sample:liveSample}),
@@ -53,7 +60,7 @@ async function makeDom(config={},withStint=true,liveSample=null) {
  window.eval(samplingJS);
  window.eval(appJS);
  await new Promise(r=>setTimeout(r,100));
- return {window,getSaves:()=>saves};
+ return {window,getSaves:()=>saves,getLaunches:()=>launches};
 }
 test('Fresh installation has a functional first-run wizard and completes setup',async t=>{
  const {window,getSaves}=await makeDom({setupComplete:false,driver:'Tester'},false);
@@ -179,4 +186,33 @@ test('English report explains the four sampling measurements',async t=>{
  assert.match(quality,/New ACC updates per second/);
  assert.match(quality,/Reads of the same data/);
  assert.match(quality,/Gap for 95% of reads/);
+});
+test('Race view shows observed pit lane time, position changes and linked stint',async t=>{
+ const {window}=await makeDom({setupComplete:true,driver:'Tester'});
+ t.after(()=>window.close());
+ const d=window.document;
+ d.querySelector('[data-nav="raceView"]').click();
+ await new Promise(r=>setTimeout(r,140));
+ const page=d.querySelector('#page');
+ assert.match(page.textContent,/Analiza wyścigu/);
+ assert.match(page.textContent,/60,0 s|60.0 s|60 s/);
+ assert.match(page.textContent,/38,0 L|38.0 L|38 L/);
+ assert.match(page.textContent,/P7/);
+ assert.match(page.textContent,/P3/);
+ assert.match(page.textContent,/Wymiana opon: niepotwierdzona/);
+ assert.match(page.textContent,/Naprawy: brak danych/);
+ assert.ok(page.querySelector('[data-open]'));
+ d.querySelector('[data-nav="history"]').click();
+ assert.ok(d.querySelector('[data-open-race]'),'history links race report');
+});
+test('Drive sends launch request and does not claim ACC actually connected',async t=>{
+ const {window,getLaunches}=await makeDom({setupComplete:true},false);
+ t.after(()=>window.close());
+ const d=window.document;
+ d.querySelector('[data-nav="drive"]').click();
+ assert.match(d.querySelector('#page').textContent,/Uruchom ACC przez Steam/);
+ d.querySelector('[data-action="launch-acc"]').click();
+ await new Promise(r=>setTimeout(r,60));
+ assert.equal(getLaunches(),1);
+ assert.match(d.querySelector('#page').textContent,/Oczekiwanie na wykrycie ACC/);
 });
