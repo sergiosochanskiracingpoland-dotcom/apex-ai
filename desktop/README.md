@@ -1,60 +1,66 @@
-# Apex AI 0.3.5 — eksperyment 75 Hz
+# Apex AI 0.3.6 — „Jedź” oraz analiza wyścigu
 
-Wydanie 0.3.5 skupia się **wyłącznie na rejestrowaniu i diagnostyce próbkowania ACC**. W poprzednim teście aplikacji 0.3.4.5 użytkownik potwierdził 18/18 funkcji, 6 okrążeń i efektywną częstotliwość 32,3 Hz.
+Wersja **0.3.6** dodaje dwa moduły: uruchamianie ACC przez Steam w zakładce **Jedź** oraz nową zakładkę **Wyścig**, powiązaną z Historią, Dashboardem, Analizą stintu i ekranem Na torze.
 
-## Zmiany
+## Jedź
 
-- **Cel rejestratora: 75 Hz**, czyli 13,333 ms pomiędzy kolejnymi zaplanowanymi odczytami. Zastąpiono dotychczasowe `Thread.Sleep` i czas oparty na przebiegu pętli mechanizmem planowania odczytów wg monotonicznego zegara `Stopwatch`/QPC.
-- Zegar śpi przez większość oczekiwania i aktywnie czeka tylko przez ostatnie ok. 1 ms. Przy dużym opóźnieniu synchronizuje się ponownie bez sztucznego generowania zaległych próbek.
-- **Rozszerzona diagnostyka** w `Dashboard → Jakość telemetrii` oraz w pełnym raporcie History:
-  - efektywna liczba **zapisanych próbek na sekundę**, liczona z timestampów w czasie jazdy;
-  - liczba **unikalnych zmian physics_packet_id na sekundę** (odrębna od liczby zapisów, może być niższa);
-  - udział powtarzanych pakietów, realizacja celu 75 Hz;
-  - mediana / 95. percentyl odstępu, liczba opóźnień >25 ms i przerw >250 ms;
-  - najdłuższy odstęp i liczba zapisanych próbek.
-- Metadane nowych stintów zawierają `targetSamplingHz=75` i `samplingMode=deadline_qpc_75hz`.
-- Wszystkie historie w CSV pozostały w niezmienionym formacie; stare pliki można nadal otwierać.
+- Przycisk **Uruchom ACC przez Steam** wysyła systemowy URI `steam://run/805550`.
+- Potwierdzenie otwarcia URI nie jest potwierdzeniem uruchomienia gry. Status zmienia się dopiero po wykryciu ACC przez rejestrator.
+- Nie trzeba wskazywać ścieżki gry. Obsługa AC przez Steam/Content Manager pozostaje osobną funkcją kolejnej wersji.
 
-## Ograniczenia
+## Wyścig
 
-**75 Hz to cel, nie gwarantowana częstotliwość dostarczanych przez grę nowych pakietów.**
-Jeżeli ACC aktualizuje pamięć współdzieloną wolniej lub system opóźnia wykonywanie procesu, zobaczymy to w pomiarze. Duża liczba powtórzonych pakietów oznacza, że dalsze zwiększanie liczby odczytów nie dostarczy większej ilości unikalnych danych gry.
+Nowy plik `acc_YYYYMMDD_HHMMSS_NNNN_race.json` to **raport jednej sesji gry**, która może zawierać wiele stintów. Dotychczasowe pliki `_samples.csv` / `_laps.csv` i zakładka Historia nadal działają. W metadanych nowych stintów znajduje się `raceId`; stare stinty nie mają sztucznie uzupełnianych danych wyścigowych.
 
-Zarówno liczby jak i wykresy pochodzą z rzeczywistych plików ACC. Nie ekstrapolujemy telemetrycznych próbek ani nie „wypełniamy” brakujących wartości.
+Nowy rejestrator odczytuje z **ACC Graphics shared memory (Pack=4)**:
+- `session` pod offsetem 8 (2 = wyścig);
+- `position` pod offsetem 136 (miejsce w klasyfikacji, jeśli wartość jest prawidłowa);
+- `isInPit` pod offsetem 160 (obserwacja boxu/pit);
+- `isInPitLane` pod offsetem 280 (wejście i wyjście z pit lane);
+- `sessionTimeLeft` pod offsetem 152 i `mandatoryPitDone` pod 288;
+- `tyreCompound` od offsetu 176;
+- `fuel` i `speedKmh` z ACC Physics.
 
-## Procedura testowania 0.3.5
+Po każdym **wjazdzie do pit lane** dotychczasowy stint jest archiwizowany, a po **wyjeździe** rozpoczyna się następny. Raport wyścigu łączy oba stinty, więc nie gubimy całego wyścigu przy pit stopie.
 
-1. **Przed instalacją zapisz wynik odniesienia:** 0.3.4.5 — 32,3 Hz, 6 okrążeń. Nie usuwaj zapisanych sesji.
-2. Zainstaluj `ApexAI-Setup-0.3.5-x64.exe` bez odinstalowywania wersji poprzedniej.
-3. Uruchom ACC bez osobnego rejestratora CMD. Przejedź **minimum 6 pełnych okrążeń** z rzeczywistym zużyciem paliwa i opon.
-4. W Historii otwórz nowy stint. W sekcji **Jakość telemetrii** przepisz: zapisane próbki/s, unikalne odczyty ACC/s, powtórzone pakiety (%), 95. percentyl odstępu (ms), przerwy >250 ms.
-5. Porównaj je z 32,3 Hz. Sprawdź kompletność czasów, prawidłowość prędkości/sterowania oraz FPS w ACC.
-6. Jeżeli krótki test przejdzie, wykonaj **stint 30 minut**. Sprawdź wykresy, płynność i wielkość pliku próbek.
-7. Zrób screen Dashboardu oraz raportu diagnostyki i przekaż do analizy.
+### Co pokazujemy jako fakt, a czego nie zgadujemy?
 
-### Kryteria wyniku
-- **70–75 Hz zapisów, ale mniej unikalnych pakietów:** harmonogram pomiarowy działa, ogranicza nas źródło danych.
-- **Poniżej 60 Hz zapisów:** harmonogram lub obciążenie nadal ogranicza skuteczność; diagnostyka odstępów pokaże skalę problemu.
-- **Utrata okrążeń, niskie FPS, duże luki:** regresja do poprawienia przed dalszym rozwojem.
+| Informacja | Status |
+|---|---|
+| Liczba zarejestrowanych wizyt w pit lane | **Pomiar**; zliczamy wejście z zewnątrz i wyjście z pit lane |
+| Czas od wjazdu do wyjazdu z pit lane | **Pomiar** czasu wizyty; to NIE jest czas obsługi mechaników |
+| Czas przy prędkości do 2 km/h | **Szacunek czasu postoju**, obejmuje także zatrzymanie na pasie |
+| Wzrost ilości paliwa | **Pomiar** różnicy poziomu paliwa (co najmniej 0,5 l), przybliżenie zatankowanej ilości |
+| Pozycja w wyścigu i jej zmiany | **Pomiar** wartości ACC; tylko dla sesji typu Race |
+| Zmiana mieszanki opon | **Pomiar** różnicy nazwy mieszanki przed i po wizycie, jeśli ACC podaje obie |
+| Wymiana opon na nowy komplet | **Niepotwierdzona**; identyczna mieszanka nie pozwala potwierdzić wymiany |
+| Naprawy, zmiana kierowcy, dokładny czas mechaników | **Brak danych w obecnym module** |
+| Liczba obowiązkowych pit stopów | Jeszcze nieobsługiwana w raporcie |
 
-Kolejne wydania mogą zoptymalizować rozmiar danych lub częstotliwość. Nie zwiększamy celu do 100 Hz bez uzasadnienia pomiarami.
+Nie podajemy liczby pit stopów dla historycznych plików CSV, które nie mają `raceId` — nie ma w nich kompletnych informacji o wizytach w pit lane.
 
-## Funkcje zachowane z 0.3.4.5
+## Zgodność i wydajność
 
-- Tapety GT3/WEC/F1 z licencją CC0 przechowywane lokalnie, podgląd, filtry i własny JPG/PNG/WEBP.
-- Personalizacja, PL/EN, własne widżety i aktualizator.
-- Historia i pełne raporty, analiza hamowań, porównania okrążeń, podgląd Na torze.
+- Zachowane docelowe **75 Hz** i poprawka biegów **R / N / 1–6**.
+- Nowe kolumny dodawane **na końcu CSV**: `race_position`, `in_pit_lane`, `session_type`, `session_time_left_s`, `mandatory_pit_done`. Poprzednie 30 kolumn pozostaje bez zmian.
+- Zapis pliku wyścigu jest osobny i odbywa się tylko przy zdarzeniach lub nie częściej niż co 2 s dla zmian miejsca. Nie wykonujemy zapisów JSON 75 razy na sekundę.
+- Tapety CC0, historia, personalizacja i raporty pozostają bez zmian.
+- Przejścia do nowego raportu przez przyciski z Historii, raportu stintu, Dashboardu i „Na torze”.
 
-**Sesje:** `Dokumenty\ApexAI\sessions` · **Konfiguracja:** Electron `userData/settings/preferences.json`. Instalator zachowuje istniejące dane.
+## Test ręczny w ACC
 
-## Kompilacja
+1. Uruchom Apex AI 0.3.6 → **Jedź** → **Uruchom ACC przez Steam**. Zweryfikuj, czy ACC faktycznie się uruchamia, po czym gra jest automatycznie wykrywana.
+2. W ACC wybierz **Race** (a nie Practice), najlepiej krótki wyścig na Imoli/Monzy. Sprawdź rzeczywistą pozycję, przejedź 1–2 okrążenia.
+3. Zjedź do pit lane, zatrzymaj się w swoim boxie, **zatankuj** i opcjonalnie zmień mieszankę. Po wyjeździe przejedź jeszcze pełne okrążenie.
+4. Otwórz **Wyścig**: sprawdź, czy jest dokładnie jedna wizyta, czas pit lane jest prawdopodobny, zauważony wzrost paliwa jest zbliżony do wartości gry, widnieją obie części wyścigu.
+5. Sprawdź zmianę pozycji, powrót do raportu stintu przez kliknięcie i przejście z Historii do Wyścigu.
+6. Sprawdź, czy **75 Hz** i FPS nadal są stabilne i czy kolejne wyścigi mają osobne raporty.
+7. Nie oczekuj potwierdzenia wymiany identycznych opon lub napraw; przy takich zdarzeniach nowy moduł powinien pokazać brak danych, a nie wymyślony pomiar.
 
-```powershell
-cd desktop
-dotnet publish collector/ApexCollector.csproj -c Release -r win-x64 --self-contained true -o collector/publish -p:PublishSingleFile=true
-npm install
-npm test
-npm run dist
-```
+Automatyczne testy CI kompilują kolektor i uruchamiają symulację wejścia/wyjścia z pit lane (czas, paliwo, pozycja, więcej niż jeden stint) oraz testy historii i interfejsu. **Rzeczywistego zachowania pamięci ACC w pit lane nie da się potwierdzić bez testu w grze**.
 
-Windows GitHub Actions dodatkowo pobiera i weryfikuje 6 zdjęć CC0, uruchamia testy UI i sprawdza zawartość instalatora oraz manifest aktualizatora `latest.yml`.
+### Źródła opisujące strukturę ACC Graphics
+- [ACC Shared Memory: lista pól](https://github.com/ebnerdm/accshm/blob/main/FIELDS.md)
+- [PyAccSharedMemory](https://github.com/rrennoir/PyAccSharedMemory)
+
+Instalator Windows 10/11 x64 nie jest podpisany certyfikatem. Użytkownicy wersji 0.3.5.1 powinni jednorazowo uruchomić nowy instalator ręcznie, bo poprzednie wydanie miało wewnętrzny numer 0.3.6 (niezgodność numeracji aktualizatora).
