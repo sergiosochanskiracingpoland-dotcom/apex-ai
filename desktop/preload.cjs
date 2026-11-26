@@ -7,7 +7,7 @@ function watch(channel,callback){
  return()=>ipcRenderer.removeListener(channel,handler);
 }
 contextBridge.exposeInMainWorld('apexDesktop',Object.freeze({
- version:'0.3.6.5',
+ version:'0.3.6.6',
  listSessions:()=>ipcRenderer.invoke('apex:list-sessions'),
  listRaces:()=>ipcRenderer.invoke('apex:list-races'),
  loadRace:id=>ipcRenderer.invoke('apex:load-race',id),

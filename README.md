@@ -1,12 +1,14 @@
 # Apex AI — Race Intelligence
 
-## Windows desktop 0.3.6.5
+## Windows desktop 0.3.6.6
 
 **[Strona Apex AI](https://sergiosochanskiracingpoland-dotcom.github.io/apex-ai/)**
 
-[Instalator Apex AI 0.3.6.5 (Windows 10/11 x64)](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.6.5/ApexAI-Setup-0.3.6.5-x64.exe)
+[Instalator Apex AI 0.3.6.6 (Windows 10/11 x64)](https://github.com/sergiosochanskiracingpoland-dotcom/apex-ai/releases/download/v0.3.6.6/ApexAI-Setup-0.3.6.6-x64.exe)
 
 ### Co nowego
+
+- **0.3.6.6:** poprawiony odczyt pit lane i stintów. Zakładka Wyścig pokazuje oddzielnie wizyty, zwykłe pit stopy i kary, z chronologią i statusem wynikającym z telemetrii.
 
 - **Jedź:** uruchamianie ACC jednym przyciskiem przez Steam, prawdziwe wykrywanie gry, automatyczna rejestracja 75 Hz.
 - **Wyścig:** nowa zakładka łącząca wszystkie stinty jednego wyścigu, z pozycją, zmianami miejsc, wizytami w pit lane i danymi z pit stopów.
@@ -25,4 +27,4 @@
 - Darmowe testy, bez konta i subskrypcji na obecnym etapie.
 - Dane sesji: `Dokumenty\ApexAI\sessions`; pliki historyczne zachowane.
 - Instalator nie jest podpisany certyfikatem, dlatego Windows może wyświetlić komunikat SmartScreen.
-- **Przejście z 0.3.5.1:** Dostępny jest instalator 0.3.6.5. Aktualizator porównuje jego wewnętrzny numer 0.3.8 z wersjami 0.3.6 i 0.3.7.
+- **Przejście z 0.3.5.1:** Dostępny jest instalator 0.3.6.6. Aktualizator porównuje jego wewnętrzny numer 0.3.9 z poprzednimi wydaniami.

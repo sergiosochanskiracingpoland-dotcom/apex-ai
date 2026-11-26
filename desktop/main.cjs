@@ -1,5 +1,5 @@
 'use strict';
-const releaseVersion='0.3.6.5';
+const releaseVersion='0.3.6.6';
 const {app,BrowserWindow,Menu,shell,dialog,ipcMain,nativeImage}=require('electron');
 const {autoUpdater}=require('electron-updater');
 const {spawn}=require('node:child_process');

@@ -28,9 +28,9 @@ test('Can enumerate and open multiple stints belonging to the same race',t=>{
  assert.deepEqual(report.stints,[v.s1,v.s2]);
  assert.equal(report.positions[0].position,9);
  assert.equal(report.positions.at(-1).position,4);
- assert.equal(report.pitStops[0].laneSeconds,80.1);
- assert.equal(report.pitStops[0].fuelAddedLitres,50);
- assert.equal(report.pitStops[0].tyreCompoundAfter,'DHE');
+ assert.equal(report.pitVisits[0].laneSeconds,80.1);
+ assert.equal(report.pitVisits[0].fuelAddedLitres,50);
+ assert.equal(report.pitVisits[0].tyreCompoundAfter,'DHE');
 });
 test('Old session files stay readable without raceId and new ones link to reports',t=>{
  const dir=setup(t),v=fixture();
@@ -55,7 +55,7 @@ test('Open pit visit has unknown exit and service instead of invented facts',t=>
  const dir=setup(t),v=fixture();
  v.raw.pitStops[0]={entryAtUtc:'2026-11-22T14:10:00Z',exitAtUtc:null,entryLap:5};
  fs.writeFileSync(path.join(dir,v.id+'_race.json'),JSON.stringify(v.raw));
- const p=races.loadRace(dir,v.id).pitStops[0];
+ const p=races.loadRace(dir,v.id).pitVisits[0];
  assert.equal(p.exitAtUtc,null);assert.equal(p.laneSeconds,null);
  assert.equal(p.fuelAddedLitres,null);assert.equal(p.tyreCompoundAfter,'');
 });

@@ -58,12 +58,28 @@ try{
   r.Update(time.AddSeconds(31),1,8,true,true,0,50,"DHE");
   r.Update(time.AddSeconds(40),1,8,false,false,100,50,"DHE");
   r.AddStint("acc_20261122_141010_9876");
+  r.Update(time.AddSeconds(420),4,10,false,false,160,36,"DHE",4,30);
+  r.Update(time.AddSeconds(430),4,10,true,false,50,35,"DHE",4,30);
+  r.Update(time.AddSeconds(440),4,10,true,true,0,35,"DHE",4,30);
+  r.Update(time.AddSeconds(470),4,12,true,true,0,35,"DHE");
+  r.Update(time.AddSeconds(480),4,12,false,false,100,34,"DHE");
+  r.Update(time.AddSeconds(600),5,12,false,false,170,30,"DHE");
   r.Close();
   using var doc=JsonDocument.Parse(File.ReadAllText(Path.Combine(dir,r.Id+"_race.json")));
   var root=doc.RootElement;
-  var pits=root.GetProperty("pitStops");
-  if(pits.GetArrayLength()!=1)throw new Exception("Expected 1 pit visit");
+  var pits=root.GetProperty("pitVisits");
+  if(pits.GetArrayLength()!=2)throw new Exception("Expected 2 pit visits in a 10-minute race");
   var p=pits[0];
+  if(p.GetProperty("kind").GetString()!="stop"||pits[1].GetProperty("kind").GetString()!="penalty")
+     throw new Exception("Pit stop and penalty service must be counted separately");
+  var penalty=root.GetProperty("penalties")[0];
+  if(penalty.GetProperty("stopAndGoSeconds").GetInt32()!=30||
+     penalty.GetProperty("status").GetString()!="servedInferred"||
+     penalty.GetProperty("visit").GetInt32()!=2||
+     penalty.GetProperty("alreadyActive").GetBoolean()||
+     penalty.GetProperty("firstSeenAtUtc").GetDateTime()!=time.AddSeconds(420)||
+     penalty.GetProperty("clearedAtUtc").GetDateTime()!=time.AddSeconds(470))
+     throw new Exception("Stop & Go 30 detection, service and visit linkage");
   if(Math.Abs(p.GetProperty("laneSeconds").GetDouble()-39)>0.15)
      throw new Exception("Pit lane duration should be 39 sec");
   if(Math.Abs(p.GetProperty("fuelAddedLitres").GetDouble()-41)>0.15)
@@ -76,5 +92,32 @@ try{
      throw new Exception("Real position timeline missing");
   if(!root.TryGetProperty("endedAtUtc",out var ended)||ended.ValueKind!=JsonValueKind.String)
      throw new Exception("Race completion timestamp missing");
-  Console.WriteLine("PASS: pit entry/exit, measured lane time, fuel delta, positions, linked stints");
+  if(Directory.GetFiles(dir,"*_race.json").Length!=1)throw new Exception("Duplicate report");
+
+  var idle=new RaceCapture(dir,"imola","ferrari_296_gt3",2,0,false);
+  idle.Update(time,0,1,false,false,30,10,"DHE");
+  idle.Close();
+  if(File.Exists(Path.Combine(dir,idle.Id+"_race.json")))throw new Exception("Empty race report");
+
+  var driveThrough=new RaceCapture(dir,"imola","ferrari_296_gt3",2,0,false,1);
+  if(driveThrough.Matches("imola","ferrari_296_gt3",2,0,2))throw new Exception("Different ACC session");
+  driveThrough.Update(time,0,6,false,false,150,15,"DHE",7);
+  driveThrough.Update(time.AddSeconds(1),0,6,true,false,75,15,"DHE",7);
+  driveThrough.Update(time.AddSeconds(8),0,7,true,false,75,15,"DHE");
+  driveThrough.Update(time.AddSeconds(9),0,7,false,false,110,15,"DHE");
+  driveThrough.Update(time.AddSeconds(20),0,7,false,false,110,15,"DHE",10);
+  driveThrough.Update(time.AddSeconds(21),0,7,true,false,75,15,"DHE",10);
+  driveThrough.TelemetryGap();
+  driveThrough.Update(time.AddSeconds(60),0,7,false,false,100,15,"DHE");
+  driveThrough.Close();
+  using var second=JsonDocument.Parse(File.ReadAllText(Path.Combine(dir,driveThrough.Id+"_race.json")));
+  var events=second.RootElement.GetProperty("penalties");
+  var visits=second.RootElement.GetProperty("pitVisits");
+  if(events[0].GetProperty("status").GetString()!="servedInferred"||
+     !events[0].GetProperty("alreadyActive").GetBoolean()||
+     events[1].GetProperty("status").GetString()!="cleared"||
+     visits[1].GetProperty("laneSeconds").ValueKind!=JsonValueKind.Null||
+     visits[1].GetProperty("stationarySeconds").ValueKind!=JsonValueKind.Null)
+     throw new Exception("Drive-through and missing telemetry must preserve uncertainty");
+  Console.WriteLine("PASS: 10-minute race, two visits, 30-second Stop & Go, drive-through, gap, positions, stints and no empty report");
 }finally{Directory.Delete(dir,true);}

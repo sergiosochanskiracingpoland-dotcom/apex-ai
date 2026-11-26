@@ -62,7 +62,14 @@ pl:{
  racePageSub:'Wyścigi i sesje zapisane od 0.3.6. Pozycje, pit stopy i stinty w jednym raporcie.',
  raceHistory:'Zapisane sesje wyścigowe',raceReport:'Analiza wyścigu',raceNoData:'Brak raportów wyścigowych z nowego rejestratora. Starsze stinty pozostają w Historii.',
  raceStints:'Stinty tego wyścigu',racePit:'Wizyty w pit lane',racePositions:'Zmiany pozycji',racePosition:'Pozycja',
- raceStart:'Start',raceFinish:'Ostatnia',raceDelta:'Zmiana pozycji',raceUnknown:'Brak danych',
+ raceStart:'Pierwsza odczytana',raceFinish:'Ostatnia odczytana',raceDelta:'Zmiana między odczytami',raceUnknown:'Brak danych',
+ raceStops:'Zwykłe pit stopy',racePenalties:'Kary ACC',raceTimeline:'Chronologia pit lane i kar',raceNoPenalties:'Nie zarejestrowano sygnału kary.',
+ raceLegacy:'Starszy raport. Dane pit lane i kar są niewiarygodne lub niedostępne.',
+ raceKind:'Rodzaj',raceEntry:'Wjazd do pit lane',raceExit:'Wyjazd z pit lane',
+ racePenaltySeen:'Kara wykryta',racePenaltyExisting:'Kara już aktywna przy pierwszym odczycie',racePenaltyClear:'Sygnał kary zniknął lub zmienił się',
+ raceDriveThrough:'Przejazd przez pit lane (drive-through)',racePenaltyCode:'Kod kary ACC',racePostRaceTime:'Kara czasowa po wyścigu',
+ racePitKind:{stop:'Pit stop',pass:'Przejazd',penalty:'Odbywanie kary (wniosek z telemetrii)',possiblePenalty:'Możliwe odbywanie kary',incomplete:'Niepełny zapis',pending:'W trakcie',unknown:'Brak danych'},
+ racePenaltyStatus:{active:'Aktywna',cleared:'Sygnał zniknął, brak potwierdzenia odbycia',changed:'Kod kary zmienił się',servedInferred:'Prawdopodobnie odbyta',unresolved:'Status przy końcu zapisu niepotwierdzony',unknown:'Brak danych'},
  racePitDuration:'Czas w pit lane',raceStationary:'Postój z prędkością do 2 km/h',raceFuelAdded:'Zaobserwowany wzrost paliwa',
  raceCompound:'Mieszanka opon',raceTyresUnknown:'Wymiana opon: niepotwierdzona',raceRepairsUnknown:'Naprawy: brak danych z telemetrii',
  raceObserved:'Dane z pamięci ACC. Zmiana mieszanki nie dowodzi wymiany kompletu opon; czas w pit lane to nie czas serwisu.',
@@ -134,7 +141,14 @@ en:{
  racePageSub:'Races and sessions recorded since 0.3.6. Positions, pit visits and driving stints in one report.',
  raceHistory:'Saved races',raceReport:'Race analysis',raceNoData:'No new-format race reports yet. Older stints remain in History.',
  raceStints:'Driving stints',racePit:'Pit lane visits',racePositions:'Position changes',racePosition:'Position',
- raceStart:'Start',raceFinish:'Latest',raceDelta:'Position change',raceUnknown:'No data',
+ raceStart:'First observed',raceFinish:'Last observed',raceDelta:'Change between readings',raceUnknown:'No data',
+ raceStops:'Regular pit stops',racePenalties:'ACC penalties',raceTimeline:'Pit lane and penalty timeline',raceNoPenalties:'No penalty signal recorded.',
+ raceLegacy:'Older report. Pit lane and penalty data are unreliable or unavailable.',
+ raceKind:'Type',raceEntry:'Pit lane entry',raceExit:'Pit lane exit',
+ racePenaltySeen:'Penalty detected',racePenaltyExisting:'Penalty already active on first reading',racePenaltyClear:'Penalty signal cleared or changed',
+ raceDriveThrough:'Drive-through',racePenaltyCode:'ACC penalty code',racePostRaceTime:'Post-race time penalty',
+ racePitKind:{stop:'Pit stop',pass:'Pass-through',penalty:'Penalty service inferred',possiblePenalty:'Possible penalty service',incomplete:'Incomplete recording',pending:'In progress',unknown:'No data'},
+ racePenaltyStatus:{active:'Active',cleared:'Signal cleared, service unconfirmed',changed:'Penalty code changed',servedInferred:'Likely served',unresolved:'Status at end of recording unconfirmed',unknown:'No data'},
  racePitDuration:'Time in pit lane',raceStationary:'Stopped at 2 km/h or less',raceFuelAdded:'Observed fuel increase',
  raceCompound:'Tyre compound',raceTyresUnknown:'Tyre change: unconfirmed',raceRepairsUnknown:'Repairs: no telemetry data',
  raceObserved:'Values come from ACC shared memory. Compound changes do not prove a tyre change, and lane time is not service time.',
@@ -206,7 +220,7 @@ function toast(msg) {
   toastTimer=setTimeout(()=>{if(x)x.hidden=true;},3300);
 }
 function collectorLabel(){return ['waiting','connected','recording'].includes(state.collector.code)?t(state.collector.code):state.collector.text||t('waiting');}
-function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.6.5';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
+function updaterLabel(){const code=state.updater.code;const keys={ready:'updateReady',current:'updateCurrent',checking:'updateChecking',available:'updateAvailable',downloading:'updateDownloading',error:'updateError'};if(!keys[code])return state.updater.text||'0.3.6.6';const p=(state.updater.text||'').match(/(\d+)%/);return t(keys[code])+(p?' '+p[1]+'%':'');}
 function style(){
   const c=state.cfg;
   document.documentElement.style.setProperty('--accent1',c.accent);
@@ -259,7 +273,7 @@ function shell(){
  const c=state.cfg,short=c.sidebarCompact;
  root.innerHTML=
  '<div id="wallpaper"></div><div id="wallpaper-shade"></div>'+
- '<div class="titlebar"><div class="titleleft"><span class="mark">A</span>APEX AI <small>RACE INTELLIGENCE · 0.3.6.5</small></div>'+
+ '<div class="titlebar"><div class="titleleft"><span class="mark">A</span>APEX AI <small>RACE INTELLIGENCE · 0.3.6.6</small></div>'+
  '<div class="windowcontrols"><button class="winbtn" data-action="minimize" title="Minimize">−</button>'+
  '<button class="winbtn" data-action="maximize" title="Maximize">□</button>'+
  '<button class="winbtn close" data-action="close" title="Close">×</button></div></div>'+
@@ -269,7 +283,7 @@ function shell(){
  '<span class="navlabel">'+esc(t(k))+'</span>'+( ['setups','engineer','drive'].includes(k)?'<span class="soon">'+esc(t('planned'))+'</span>':'')+'</button>').join('')+'</nav>'+
  '<div class="navspacer"></div><div class="navbottom"><button class="navitem'+(state.view==='settings'?' active':'')+'" data-nav="settings" title="'+esc(t('settings'))+'">'+symbol('settings')+
  '<span class="navlabel">'+esc(t('settings'))+'</span></button>'+
- '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.6.5</span></div></div></aside>'+
+ '<div class="mutedline"><i class="dot '+esc(state.collector.code)+'"></i><span id="side-status">'+esc(collectorLabel())+'</span><br><span style="opacity:.6">APEX AI 0.3.6.6</span></div></div></aside>'+
  '<div class="contentarea"><div class="topbar"><div class="top-left"><button class="ghost-square" data-action="toggle-sidebar" title="Menu">'+symbol('menu')+'</button>'+
  '<div class="top-page"><strong id="top-title">'+esc(t(state.view==='report'?'showFull':state.view))+'</strong><small>APEX AI / <span id="top-subtitle">'+esc(t(state.view==='report'?'history':state.view))+'</span></small></div></div>'+
  '<div class="top-right"><span class="connection"><i id="connection-dot" class="dot '+esc(state.collector.code)+'"></i><span id="connection-label">'+esc(state.collector.text||t('waiting'))+'</span></span>'+
@@ -698,7 +712,7 @@ function settings(){
  (state.updater.code==='ready'?'<button class="btn primary" data-action="install-update">'+esc(t('installUpdate'))+'</button>':'')+'</div>'+
  '<p class="small">'+esc(t('test75'))+'</p></section>'+
  '<section class="glass settings-card wide"><h3>'+esc(t('about'))+'</h3><div class="row">'+
- '<span class="small">'+esc(t('version'))+': <b>0.3.6.5</b></span>'+
+ '<span class="small">'+esc(t('version'))+': <b>0.3.6.6</b></span>'+
  '<span class="small">'+esc(t('recorder'))+': <b id="recorder-settings">'+esc(state.collector.text||t('waiting'))+'</b></span>'+
  '<button class="btn tiny" data-action="open-folder">'+symbol('folder')+esc(t('openFolder'))+'</button></div></section></div>';
 }
@@ -743,39 +757,62 @@ function racePage(){
  (list.length?'<div class="race-list">'+list.slice(0,50).map(x=>
  '<button class="btn race-choice'+(r?.id===x.id?' active':'')+'" data-open-race="'+esc(x.id)+'">'+
  '<b>'+esc(cleanName(x.track)||x.track)+'</b> · '+esc(cleanName(x.car)||x.car)+
- ' · '+esc(date(x.date))+' · '+Number(x.pitCount||0)+' pit</button>').join('')+'</div>':
+ ' · '+esc(date(x.date))+' · '+(x.schemaVersion===1?'—':Number(x.pitCount||0))+' pit</button>').join('')+'</div>':
  '<p class="small">'+esc(t('raceNoData'))+'</p>')+'</section>';
  if(!r)return html;
  const isRace=r.sessionType===2;
  const pos=(r.positions||[]).filter(x=>Number.isInteger(x.position)&&x.position>0&&x.position<=200);
  const first=pos[0]?.position,last=pos[pos.length-1]?.position;
  const change=first&&last?first-last:null;
- const pits=r.pitStops||[],finished=pits.filter(p=>!!p.exitAtUtc);
+ const legacy=r.schemaVersion===1;
+ const pits=r.pitVisits||r.pitStops||[],penalties=r.penalties||[];
+ const elapsed=v=>Number.isFinite(v)?num(v,1)+' s':'—';
+ const clock=v=>v?new Date(v).toLocaleTimeString():'—';
+ const penaltyName=p=>p.stopAndGoSeconds?'Stop & Go '+p.stopAndGoSeconds+' s':
+   p.driveThrough?t('raceDriveThrough'):p.code===14?t('racePostRaceTime'):t('racePenaltyCode')+' '+p.code;
+ const events=[
+  ...pits.flatMap((p,i)=>[
+   [p.entryAtUtc,t('raceEntry')+' #'+(i+1)],
+   [p.exitAtUtc,t('raceExit')+' #'+(i+1)]
+  ]),
+  ...penalties.flatMap(p=>[
+   [p.firstSeenAtUtc,(p.alreadyActive?t('racePenaltyExisting'):t('racePenaltySeen'))+' · '+penaltyName(p)],
+   [p.clearedAtUtc,t('racePenaltyClear')+' · '+penaltyName(p)]
+  ])
+ ].filter(([time])=>time).sort(([a],[b])=>a.localeCompare(b));
  const raceStints=state.sessions.filter(s=>s.raceId===r.id);
  const value=v=>typeof v==='number'&&Number.isFinite(v)?num(v,1):'—';
  html+='<div class="summary-grid">'+
- metric(t('racePit'),String(finished.length),pits.length>finished.length?'+'+(pits.length-finished.length)+' '+t('raceVisitPending'):'ACC')+
+ metric(t('racePit'),legacy?'—':String(pits.length),'ACC')+
+ metric(t('raceStops'),legacy?'—':String(pits.filter(p=>p.kind==='stop').length),'ACC')+
  metric(t('raceStints'),String(r.stints?.length||0),'ACC')+
  metric(t('raceStart'),isRace&&first?'P'+first:'—',isRace?'ACC':t('raceTraining'))+
  metric(t('raceFinish'),isRace&&last?'P'+last:'—',isRace?'ACC':t('raceTraining'))+
  metric(t('raceDelta'),isRace&&change!==null?(change>0?'+':'')+change:'—',t('racePosition'))+
  '</div>'+
  '<section class="glass widget wide"><div class="widget-header"><h3>'+esc(t('racePit'))+'</h3></div>'+
- '<p class="widget-caption">'+esc(t('raceObserved'))+'</p>';
+ '<p class="widget-caption">'+esc(t(legacy?'raceLegacy':'raceObserved'))+'</p>';
  if(!pits.length)html+='<p class="small">'+esc(t('raceNoVisits'))+'</p>';
  else html+='<div class="data-table-wrap"><table><thead><tr><th>#</th><th>'+esc(t('lap'))+'</th><th>'+
  esc(t('racePitDuration'))+'</th><th>'+esc(t('raceStationary'))+'</th><th>'+esc(t('raceFuelAdded'))+
- '</th><th>'+esc(t('raceCompound'))+'</th></tr></thead><tbody>'+
+ '</th><th>'+esc(t('raceCompound'))+'</th><th>'+esc(t('raceKind'))+'</th></tr></thead><tbody>'+
  pits.map((p,i)=>{
  const changed=p.tyreCompoundAfter&&p.tyreCompoundBefore&&p.tyreCompoundAfter!==p.tyreCompoundBefore;
  const tyre=changed?p.tyreCompoundBefore+' → '+p.tyreCompoundAfter:t('raceTyresUnknown');
  return '<tr><td>'+(i+1)+'</td><td>'+esc(p.entryLap??'—')+'</td>'+
- '<td>'+esc(p.exitAtUtc?value(p.laneSeconds)+' s':t('raceVisitPending'))+'</td>'+
- '<td>'+esc(p.exitAtUtc?value(p.stationarySeconds)+' s':'—')+'</td>'+
+ '<td>'+esc(elapsed(p.laneSeconds))+'</td>'+
+ '<td>'+esc(p.exitAtUtc?elapsed(p.stationarySeconds):'—')+'</td>'+
  '<td>'+esc(Number.isFinite(p.fuelAddedLitres)?'+'+value(p.fuelAddedLitres)+' L':'—')+'</td>'+
- '<td>'+esc(tyre)+'</td></tr>';
+ '<td>'+esc(tyre)+'</td><td>'+esc(t('racePitKind')[p.kind||'unknown'])+'</td></tr>';
  }).join('')+'</tbody></table></div>';
  html+='<p class="small">'+esc(t('raceRepairsUnknown'))+'</p></section>'+
+ '<section class="glass widget wide"><div class="widget-header"><h3>'+esc(t('racePenalties'))+'</h3></div>'+
+ (penalties.length?'<ul>'+penalties.map(p=>'<li>'+esc(penaltyName(p)+
+ (p.observedSeconds!==null&&!p.stopAndGoSeconds?' · '+elapsed(p.observedSeconds):'')+
+ ' · '+t('racePenaltyStatus')[p.status]+(p.visit?' · '+t('racePit')+' #'+p.visit:''))+'</li>').join('')+'</ul>':
+ '<p class="small">'+esc(t(legacy?'raceUnknown':'raceNoPenalties'))+'</p>')+'</section>'+
+ (events.length?'<section class="glass widget wide"><div class="widget-header"><h3>'+esc(t('raceTimeline'))+
+ '</h3></div><ul>'+events.map(([time,label])=>'<li>'+esc(clock(time)+' · '+label)+'</li>').join('')+'</ul></section>':'')+
  '<section class="glass widget wide"><div class="widget-header"><h3>'+esc(t('racePositions'))+'</h3></div>';
  if(!pos.length||!isRace)html+='<p class="small">'+esc(t('raceNoPosition'))+'</p>';
  else html+='<div class="data-table-wrap"><table><thead><tr><th>'+esc(t('lap'))+'</th><th>'+esc(t('racePosition'))+'</th><th>UTC</th></tr></thead><tbody>'+
@@ -834,7 +871,7 @@ function updateStatus(){
  const label=collectorLabel();
  for(const id of ['connection-label','side-status','recorder-settings'])if(E(id))E(id).textContent=label;
  for(const id of ['connection-dot'])if(E(id))E(id).className='dot '+c.code;
- if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.6.5';
+ if(E('update-label'))E('update-label').textContent=state.updater.text||'0.3.6.6';
  if(E('update-text'))E('update-text').textContent=updaterLabel();
  if(E('live-dot')){E('live-dot').className='dot '+c.code;}
  if(E('live-conn'))E('live-conn').textContent=c.code==='recording'?t('liveRecording'):t('liveWaiting');

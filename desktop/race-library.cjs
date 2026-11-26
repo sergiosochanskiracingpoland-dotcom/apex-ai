@@ -12,8 +12,9 @@ function loadRace(folder,id){
  const stat=fs.statSync(f);
  if(!stat.isFile()||stat.size>MAX_RACE_BYTES)throw Error('Raport wyścigu jest zbyt duży.');
  const r=JSON.parse(fs.readFileSync(f,'utf8'));
- if(!r||r.schemaVersion!==1||r.id!==id||!Array.isArray(r.stints)||
-    !Array.isArray(r.pitStops)||!Array.isArray(r.positions))throw Error('Nieprawidłowy raport wyścigu.');
+ const visits=r?.schemaVersion===1?r.pitStops:r?.pitVisits;
+ if(!r||![1,2].includes(r.schemaVersion)||r.id!==id||!Array.isArray(r.stints)||
+    !Array.isArray(visits)||!Array.isArray(r.positions))throw Error('Nieprawidłowy raport wyścigu.');
  const str=v=>String(v||'').slice(0,100);
  const sanePos=p=>Number.isInteger(p?.position)&&p.position>=1&&p.position<=200&&
     Number.isInteger(p.lap)&&p.lap>=0&&p.lap<=100000&&typeof p.atUtc==='string';
@@ -33,15 +34,24 @@ function loadRace(folder,id){
     tyreCompoundAfter:str(raw.tyreCompoundAfter),
     positionBefore:numeric(raw.positionBefore,1,200),
     positionAfter:numeric(raw.positionAfter,1,200),
-    pitBoxFirstSeenUtc:typeof raw.pitBoxFirstSeenUtc==='string'?raw.pitBoxFirstSeenUtc:null
+    pitBoxFirstSeenUtc:typeof raw.pitBoxFirstSeenUtc==='string'?raw.pitBoxFirstSeenUtc:null,
+    kind:['pending','stop','pass','penalty','possiblePenalty','incomplete'].includes(raw.kind)?raw.kind:'unknown'
    };
  };
  return {
-  id,game:'ACC',track:str(r.track),car:str(r.car),
+  id,game:'ACC',track:str(r.track),car:str(r.car),schemaVersion:r.schemaVersion,
   sessionType:Number.isInteger(r.sessionType)?r.sessionType:-1,
   startedAtUtc:str(r.startedAtUtc),endedAtUtc:str(r.endedAtUtc)||null,
   stints:[...new Set(r.stints.filter(s=>typeof s==='string'&&ID.test(s)))].slice(0,200),
-  pitStops:r.pitStops.slice(0,100).map(visit),
+  pitVisits:visits.slice(0,100).map(visit),
+  penalties:Array.isArray(r.penalties)?r.penalties.filter(p=>Number.isInteger(p?.code)&&p.code>0)
+    .slice(0,200).map(p=>({
+      code:p.code,lap:numeric(p.lap,0,100000),firstSeenAtUtc:str(p.firstSeenAtUtc),
+      clearedAtUtc:str(p.clearedAtUtc)||null,alreadyActive:p.alreadyActive===true,
+      stopAndGoSeconds:numeric(p.stopAndGoSeconds,1,120),driveThrough:p.driveThrough===true,
+      observedSeconds:numeric(p.observedSeconds,0,7200),visit:numeric(p.visit,1,100),
+      status:['active','cleared','changed','servedInferred','unresolved'].includes(p.status)?p.status:'unknown'
+    })):[],
   positions:r.positions.filter(sanePos).slice(0,3000)
  };
 }
@@ -54,7 +64,7 @@ function listRaces(folder){
    const id=file.slice(0,-10),r=loadRace(folder,id);
    return r?[{id:r.id,track:r.track,car:r.car,date:r.startedAtUtc,
       sessionType:r.sessionType,stintCount:r.stints.length,
-      pitCount:r.pitStops.length,ended:!!r.endedAtUtc}]:[];
+      pitCount:r.pitVisits.length,schemaVersion:r.schemaVersion,ended:!!r.endedAtUtc}]:[];
   }catch{return [];}
  });
 }

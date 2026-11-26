@@ -203,10 +203,12 @@ internal static class Program
         MemoryMappedViewAccessor? g = null, p = null;
         Session? session = null;
         RaceCapture? race = null;
+        bool stintInPit = false;
         void CloseStint()
         {
             var current = session;
             session = null;
+            stintInPit = false;
             current?.Dispose();
         }
         void CloseDrivingSession()
@@ -260,13 +262,14 @@ internal static class Program
                     int sessionType = g.ReadInt32(8);
                     int position = g.ReadInt32(136);
                     float sessionTimeLeft = g.ReadSingle(152);
-                    int inPitLane = g.ReadInt32(280);
-                    int mandatoryPitDone = g.ReadInt32(288);
+                    var graphics = AccGraphics.Read(g);
+                    int inPitLane = graphics.InPitLane ? 1 : 0;
+                    int mandatoryPitDone = graphics.MandatoryPitDone ? 1 : 0;
                     int status = g.ReadInt32(4);
                     int completed = g.ReadInt32(132);
                     int lastLapMs = g.ReadInt32(144);
                     int sector = g.ReadInt32(164);
-                    int inPit = g.ReadInt32(160);
+                    int inPit = graphics.InPit ? 1 : 0;
                     float progress = g.ReadSingle(248);
 
                     int physicsPacket = p.ReadInt32(0);
@@ -283,8 +286,18 @@ internal static class Program
                     {
                         if (continuity.ShouldReopen(tick)) ReleaseMaps();
                         State("waiting", "Oczekiwanie na świeżą telemetrię ACC");
+                        if (!hadGap) race?.TelemetryGap();
                         hadGap = true;
                         sampleClock.WaitForNext();
+                        continue;
+                    }
+                    if (status != 2)
+                    {
+                        if (status is 0 or 1)
+                            State("connected", "ACC uruchomione; czekam na jazdę");
+                        if (!hadGap) race?.TelemetryGap();
+                        hadGap = true;
+                        Thread.Sleep(180);
                         continue;
                     }
                     if (hadGap && session is not null)
@@ -297,16 +310,6 @@ internal static class Program
                     }
                     hadGap = false;
 
-                    if (status != 2)
-                    {
-                        if (status is 0 or 1)
-                        {
-                            State("connected", "ACC uruchomione; czekam na jazdę");
-                        }
-                        // status 3 = pause: keep the file open but stop sampling.
-                        Thread.Sleep(180);
-                        continue;
-                    }
                     if (completed is < 0 or > 100000 || sector is < 0 or > 2 || !float.IsFinite(progress))
                     {
                         Thread.Sleep(100);
@@ -329,7 +332,7 @@ internal static class Program
                     // flags from documented ACC Graphics (Pack=4, v1.8+), not estimates.
                     if (!string.IsNullOrEmpty(latestTrack) && !string.IsNullOrEmpty(latestCar))
                     {
-                        if (race != null && !race.Matches(latestTrack,latestCar,sessionType,completed))
+                        if (race != null && !race.Matches(latestTrack,latestCar,sessionType,completed,graphics.SessionIndex))
                         {
                             CloseDrivingSession();
                         }
@@ -342,21 +345,26 @@ internal static class Program
                                 continue;
                             }
                             race=new RaceCapture(folder,latestTrack,latestCar,sessionType,
-                                completed,inPitLane!=0);
+                                completed,graphics.InPitLane,graphics.SessionIndex);
                             Audit(folder, "race_started_on_movement", race.Id, null, 0, completed, packet, physicsPacket);
                             Console.WriteLine("RACE|"+race.Id);
                         }
                         float pitFuel=p.ReadSingle(12), pitSpeed=p.ReadSingle(28);
                         string pitCompound=ReadString(g,176);
                         race.Update(now,completed,position,inPitLane!=0,
-                            inPit!=0,pitSpeed,pitFuel,pitCompound);
+                            graphics.InPit,pitSpeed,pitFuel,pitCompound,
+                            graphics.Penalty,graphics.PenaltyTime,graphics.MandatoryPitDone);
                     }
-                    // Split stints at PIT LANE ENTRY, not at the garage/box,
-                    // while race sidecar keeps the whole pit visit connected.
-                    if (inPit != 0 || inPitLane != 0)
+                    // The start/finish timing line can run through pit lane.
+                    // Keep the existing stint through the visit to capture that lap.
+                    bool inServiceArea = graphics.InPit || graphics.InPitLane;
+                    bool pitExit = stintInPit && !inServiceArea;
+                    bool finishLapBeforeSplit = pitExit && session is not null && completed > session.PreviousLap;
+                    if (pitExit && !finishLapBeforeSplit) CloseStint();
+                    stintInPit = session is not null && inServiceArea;
+                    if (session is null && inServiceArea)
                     {
-                        CloseStint();
-                        State("connected","ACC pit lane — race report tracks stop");
+                        State("connected","ACC pit lane");
                         Thread.Sleep(120);
                         continue;
                     }
@@ -480,6 +488,7 @@ internal static class Program
                         session.Samples.Flush();
                         session.LastFlush = now;
                     }
+                    if (finishLapBeforeSplit) CloseStint();
                 }
                 catch (Exception error)
                 {

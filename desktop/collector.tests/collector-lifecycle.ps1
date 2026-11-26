@@ -16,15 +16,30 @@ $env:APEX_SESSIONS_DIR = $testPath
 $maps = @{}
 $views = @{}
 $child = $null
+$pitLane = 0
+$pitBox = 0
+$penalty = 0
+$mandatoryDone = 0
 
 function Write-Frame([int]$packet, [int]$status, [int]$lap, [single]$speed, [bool]$updatePhysics = $true) {
     $g = $views.graphics
     $p = $views.physics
     $g.Write(4, $status)
+    $g.Write(8, 2)
     $g.Write(132, $lap)
     $g.Write(144, 105000)
     $g.Write(152, [single]600)
     $g.Write(248, [single]0.1)
+    $g.Write(136, 12)
+    $g.Write(160, $pitBox)
+    # Nonzero XYZ coordinates must never be interpreted as pit flags.
+    $g.Write(280, [single]127.25)
+    $g.Write(288, [single]-50.25)
+    $g.Write(1220, [single]($(if ($penalty -eq 4) {30} else {0})))
+    $g.Write(1228, $penalty)
+    $g.Write(1236, $pitLane)
+    $g.Write(1244, $mandatoryDone)
+    $g.Write(1320, 1)
     if ($updatePhysics) {
         $p.Write(20, 5000)
         $p.Write(28, $speed)
@@ -104,9 +119,31 @@ try {
     if ($LASTEXITCODE) { throw 'Expected one eight-lap History entry across repeated refreshes.' }
     $duplicate = Start-Process -FilePath $collectorPath -WindowStyle Hidden -PassThru -Wait
     if ($duplicate.ExitCode -ne 2) { throw 'Second collector did not report the expected writer lock.' }
-    Send-Frames 395881 0 16 0 $false
+    $pitLane = 1
+    Send-Frames 395881 2 16 60
+    $pitBox = 1
+    $mandatoryDone = 1
+    Send-Frames 395921 2 16 0
+    $pitLane = $pitBox = 0
+    Send-Frames 395961 2 16 0
+    $penalty = 4
+    Send-Frames 396001 2 16 0
+    $pitLane = 1
+    Send-Frames 396041 2 16 60
+    $pitBox = 1
+    $serviceClock = [Diagnostics.Stopwatch]::StartNew()
+    $packet = 396081
+    while ($serviceClock.Elapsed.TotalSeconds -lt 30.5) {
+        Write-Frame ($packet++) 2 16 0
+        Start-Sleep -Milliseconds 45
+    }
+    $penalty = 0
+    Send-Frames $packet 2 16 0
+    $pitLane = $pitBox = 0
+    Send-Frames ($packet + 40) 2 16 0
+    Send-Frames ($packet + 80) 0 16 0 $false
     Assert-Stints 1 1 'ACC ends session while physics freezes'
-    Send-Frames 395921 0 16 0 $false
+    Send-Frames ($packet + 120) 0 16 0 $false
     Assert-Stints 1 1 'Repeated end signal'
     Send-Frames 1 2 0 110
     Assert-Stints 2 1 'ACC restarts and begins a new stint'
@@ -130,6 +167,10 @@ try {
     node -e $check $reader $testPath
     if ($LASTEXITCODE) { throw 'Collector restart while stationary changed History.' }
     Assert-Stints 2 2 'Application restart while stationary'
+    $raceReader = (Resolve-Path (Join-Path $PSScriptRoot '../race-library.cjs')).Path
+    $checkRace = 'const l=require(process.argv[1]),d=process.argv[2],a=l.listRaces(d); if(a.length!==1) process.exit(2); const r=l.loadRace(d,a[0].id); if(!r.endedAtUtc||r.stints.length!==1||r.pitVisits.map(v=>v.kind).join()!=="stop,penalty"||r.penalties[0]?.stopAndGoSeconds!==30||r.penalties[0]?.status!=="servedInferred"||r.penalties[0]?.visit!==2) process.exit(3); console.log(JSON.stringify(r,null,2));'
+    node -e $checkRace $raceReader $testPath
+    if ($LASTEXITCODE) { throw "Expected one persisted race with two visits and Stop & Go service ($LASTEXITCODE)." }
     Write-Output "PASS: $IdleSeconds seconds idle, stationary ACC, dropout, reconnect, ACC restart, one write and close per stint."
 } finally {
     if ($child -and -not $child.HasExited) {

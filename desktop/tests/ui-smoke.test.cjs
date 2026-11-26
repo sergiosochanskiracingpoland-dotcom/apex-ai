@@ -32,15 +32,19 @@ async function makeDom(config={},withStint=true,liveSample=null) {
  let state=prefs.normalize(config);
  const saves=[];let launches=0;
  const raceId='acc_20261120_190000_9999';
- const race={schemaVersion:1,id:raceId,track:'imola',car:'ferrari_296_gt3',sessionType:2,
+ const race={schemaVersion:2,id:raceId,track:'imola',car:'ferrari_296_gt3',sessionType:2,
  stints:[fixture.key],positions:[{atUtc:'2026-11-20T19:00:00Z',lap:0,position:7},{atUtc:'2026-11-20T19:17:00Z',lap:8,position:3}],
- pitStops:[{entryAtUtc:'2026-11-20T19:04:00Z',exitAtUtc:'2026-11-20T19:05:00Z',entryLap:2,laneSeconds:60,stationarySeconds:20,fuelAddedLitres:38,tyreCompoundBefore:'DHE',tyreCompoundAfter:'DHE'}]};
+ pitVisits:[
+  {entryAtUtc:'2026-11-20T19:04:00Z',exitAtUtc:'2026-11-20T19:05:00Z',entryLap:2,laneSeconds:60,stationarySeconds:20,fuelAddedLitres:38,tyreCompoundBefore:'DHE',tyreCompoundAfter:'DHE',kind:'stop'},
+  {entryAtUtc:'2026-11-20T19:07:20Z',exitAtUtc:'2026-11-20T19:08:10Z',entryLap:4,laneSeconds:50,stationarySeconds:30,kind:'penalty'}
+ ],
+ penalties:[{code:4,stopAndGoSeconds:30,firstSeenAtUtc:'2026-11-20T19:07:00Z',clearedAtUtc:'2026-11-20T19:08:00Z',visit:2,status:'servedInferred'}]};
  window.apexDesktop={
-  version:'0.3.6.5',
+  version:'0.3.6.6',
   getPreferences:async()=>state,
   savePreferences:async v=>{state=prefs.normalize(v);saves.push(state);return state;},
   listSessions:async()=>sessions,
-  listRaces:async()=>withStint?[{id:raceId,track:'imola',car:'ferrari_296_gt3',date:'2026-11-20T19:00:00Z',pitCount:1,stintCount:1}]:[],
+  listRaces:async()=>withStint?[{id:raceId,track:'imola',car:'ferrari_296_gt3',date:'2026-11-20T19:00:00Z',pitCount:2,stintCount:1}]:[],
   loadRace:async()=>race,
   launchGame:async game=>{if(game==='acc')launches++;return {requested:true,game};},
   loadSession:async()=>fixture,
@@ -215,6 +219,11 @@ test('Race view shows observed pit lane time, position changes and linked stint'
  assert.match(page.textContent,/38,0 L|38.0 L|38 L/);
  assert.match(page.textContent,/P7/);
  assert.match(page.textContent,/P3/);
+ assert.match(page.textContent,/Pierwsza odczytana/);
+ assert.match(page.textContent,/Stop & Go 30 s · Prawdopodobnie odbyta/);
+ assert.match(page.textContent,/Wizyty w pit lane2/);
+ assert.match(page.textContent,/Zwykłe pit stopy1/);
+ assert.match(page.textContent,/Kara wykryta.*Wjazd do pit lane #2.*Sygnał kary zniknął.*Wyjazd z pit lane #2/);
  assert.match(page.textContent,/Wymiana opon: niepotwierdzona/);
  assert.match(page.textContent,/Naprawy: brak danych/);
  assert.ok(page.querySelector('[data-open]'));

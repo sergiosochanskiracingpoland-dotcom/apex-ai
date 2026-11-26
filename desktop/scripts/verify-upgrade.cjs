@@ -19,12 +19,13 @@ async function verify([previous, resources, assets, scratch, installFlag]) {
   const previousConfig = path.resolve(resources, 'app-update.yml');
   const { owner, repo, provider } = load(fs.readFileSync(previousConfig, 'utf8'));
   assert.equal(provider, 'github');
-  const tag = 'v0.3.6.5';
   const release = `/${owner}/${repo}/releases`;
   const manifest = fs.readFileSync(path.join(assets, 'latest.yml'));
   const info = load(manifest.toString());
-  const setup = info.files.find(file => file.url === 'ApexAI-Setup-0.3.6.5-x64.exe');
+  const setup = info.files.find(file => /^ApexAI-Setup-\d+(\.\d+){3}-x64\.exe$/.test(file.url));
   assert(setup);
+  const releaseVersion = setup.url.slice('ApexAI-Setup-'.length, -'-x64.exe'.length);
+  const tag = 'v' + releaseVersion;
   const installer = path.join(assets, setup.url);
   const requests = new Set();
 
@@ -32,7 +33,7 @@ async function verify([previous, resources, assets, scratch, installFlag]) {
     const url = new URL(request.url, 'http://127.0.0.1');
     requests.add(url.pathname);
     if (url.pathname === release + '.atom') {
-      return response.end(`<feed><entry><link href="https://github.com${release}/tag/${tag}"/><title>Apex AI 0.3.6.5</title><content>Stint repair</content></entry></feed>`);
+      return response.end(`<feed><entry><link href="https://github.com${release}/tag/${tag}"/><title>Apex AI ${releaseVersion}</title><content>Windows update</content></entry></feed>`);
     }
     if (url.pathname === release + '/latest') return response.end(JSON.stringify({ tag_name: tag }));
     if (url.pathname === `${release}/download/${tag}/latest.yml`) return response.end(manifest);
